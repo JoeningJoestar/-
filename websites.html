@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Websites Collection - Lumina</title>
+    <style>
+        :root {
+            --bg-color: #fbfbfd;
+            --font-stack: "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: var(--font-stack); background: var(--bg-color); color: #1d1d1f; padding-bottom: 100px; }
+        a { text-decoration: none; color: inherit; }
+
+        /* 顶部导航 */
+        .header {
+            position: sticky; top: 0; z-index: 100;
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: saturate(180%) blur(20px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            height: 60px; display: flex; align-items: center; padding: 0 40px;
+        }
+        .back-link { font-size: 14px; font-weight: 600; color: #0071e3; display: flex; align-items: center; transition: opacity 0.3s; }
+        .back-link:hover { opacity: 0.7; }
+        .page-title { position: absolute; left: 50%; transform: translateX(-50%); font-weight: 600; }
+
+        /* 容器 */
+        .container { max-width: 1200px; margin: 60px auto; padding: 0 40px; }
+        .hero-text { margin-bottom: 60px; text-align: center; }
+        .hero-text h1 { font-size: 48px; font-weight: 700; margin-bottom: 10px; }
+        .hero-text p { color: #86868b; font-size: 20px; }
+
+        /* 网格布局 */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 30px;
+        }
+
+        /* 卡片样式 (复用但简化) */
+        .grid-card {
+            background: #fff;
+            border-radius: 20px;
+            padding: 30px;
+            height: 280px;
+            display: flex; flex-direction: column; justify-content: space-between;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+            border: 1px solid rgba(0,0,0,0.03);
+            transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+            position: relative; overflow: hidden;
+        }
+        
+        /* 悬停微光 */
+        .grid-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+        }
+        .grid-card::before {
+            content:''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+            background: #eee; transition: background 0.3s;
+        }
+        .grid-card:hover::before { background: linear-gradient(180deg, #ff9a9e, #fad0c4); }
+
+        .icon { font-size: 36px; margin-bottom: 15px; }
+        .name { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+        .desc { font-size: 13px; color: #888; line-height: 1.4; }
+        .link-text { margin-top: 20px; font-size: 13px; color: #0071e3; font-weight: 600; opacity: 0; transform: translateX(-10px); transition: all 0.3s; }
+        .grid-card:hover .link-text { opacity: 1; transform: translateX(0); }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <a href="index.html" class="back-link">‹ 返回主页</a>
+        <div class="page-title">Website Collection</div>
+    </header>
+
+    <div class="container">
+        <div class="hero-text">
+            <h1>All Portals.</h1>
+            <p>常用的 15 个灵感来源与工具。</p>
+        </div>
+
+        <div class="grid" id="gridContainer">
+            <!-- JS 生成 -->
+        </div>
+    </div>
+
+    <script>
+        // 复用数据
+        const websites = [
+            { name: "GitHub", icon: "🐙", desc: "代码托管与协作", url: "https://github.com" },
+            { name: "Dribbble", icon: "🏀", desc: "设计师灵感社区", url: "https://dribbble.com" },
+            { name: "ChatGPT", icon: "🤖", desc: "AI 智能助手", url: "https://chatgpt.com" },
+            { name: "Bilibili", icon: "📺", desc: "干杯，二次元", url: "https://bilibili.com" },
+            { name: "YouTube", icon: "▶️", desc: "全球视频平台", url: "https://youtube.com" },
+            { name: "V2EX", icon: "☁️", desc: "创意工作者社区", url: "https://v2ex.com" },
+            { name: "Unsplash", icon: "📷", desc: "免费高清图库", url: "https://unsplash.com" },
+            { name: "Notion", icon: "📝", desc: "All-in-one笔记", url: "https://notion.so" },
+            { name: "Figma", icon: "🎨", desc: "界面设计工具", url: "https://figma.com" },
+            { name: "Apple", icon: "🍎", desc: "Think Different", url: "https://apple.com" },
+            { name: "Google", icon: "🔍", desc: "搜寻世界信息", url: "https://google.com" },
+            { name: "Twitter", icon: "🐦", desc: "现在的 X", url: "https://x.com" },
+            { name: "ProductHunt", icon: "🦄", desc: "发现新奇产品", url: "https://producthunt.com" },
+            { name: "StackOverflow", icon: "📚", desc: "程序员问答", url: "https://stackoverflow.com" },
+            { name: "Medium", icon: "📖", desc: "优质阅读平台", url: "https://medium.com" }
+        ];
+
+        const container = document.getElementById('gridContainer');
+        websites.forEach(site => {
+            const card = document.createElement('a');
+            card.href = site.url;
+            card.target = "_blank";
+            card.className = "grid-card";
+            card.innerHTML = `
+                <div>
+                    <div class="icon">${site.icon}</div>
+                    <div class="name">${site.name}</div>
+                    <div class="desc">${site.desc}</div>
+                </div>
+                <div class="link-text">Visit Website ›</div>
+            `;
+            container.appendChild(card);
+        });
+    </script>
+</body>
+</html>
