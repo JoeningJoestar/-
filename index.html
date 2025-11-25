@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>我の个人空间| 寧</title>
     
-    <!-- 优化：使用 defer 异步加载 SDK，解决白屏时间过长问题 -->
-    <script src="//cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js" defer></script>
+    <!-- 修复1：加上 https: 协议头，防止本地打开无法加载 -->
+    <!-- 优化：增加 preconnect 预连接 CDN -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js" defer></script>
     
     <style>
         :root {
@@ -26,26 +28,24 @@
             min-height: 100vh;
         }
 
-        /* 修复：背景层级 z-index: -10 */
+        /* 优化：减少背景绘制区域，添加 GPU 加速提示 */
         body::before {
             content: '';
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             z-index: -10;
             background-image: 
-                radial-gradient(at 10% 10%, rgba(255, 61, 84, 0.7) 0px, transparent 50%),
-                radial-gradient(at 90% 10%, rgba(84, 218, 255, 0.7) 0px, transparent 50%),
-                radial-gradient(at 50% 50%, rgba(213, 62, 255, 0.6) 0px, transparent 50%),
-                radial-gradient(at 10% 90%, rgba(255, 210, 61, 0.7) 0px, transparent 50%),
-                radial-gradient(at 90% 90%, rgba(90, 84, 255, 0.7) 0px, transparent 50%);
+                radial-gradient(at 10% 10%, rgba(255, 61, 84, 0.6) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, rgba(84, 218, 255, 0.6) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(213, 62, 255, 0.5) 0px, transparent 50%);
             background-size: 200% 200%;
-            animation: paint-flow 15s ease-in-out infinite alternate;
+            animation: paint-flow 20s ease-in-out infinite alternate;
+            will-change: background-position;
         }
         
         @keyframes paint-flow { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
         a { text-decoration: none; color: inherit; -webkit-user-drag: none; }
 
-        /* 修复：彩虹线 z-index: -5 (位于背景之上，内容之下) */
         .ribbon-container { 
             position: fixed; top: 0; left: 61.8%; height: 100vh; width: 150px; 
             z-index: -5; pointer-events: none; transform: translateX(-50%); opacity: 0.8;
@@ -56,13 +56,11 @@
             transition: stroke-dashoffset 0.1s linear;
         }
 
-        /* 漂浮文字层 z-index: -6 */
         #floating-text-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -6; pointer-events: none; overflow: hidden; }
-        .floating-text-item { position: absolute; font-weight: 900; color: rgba(0, 0, 0, 0.08); white-space: nowrap; animation: float-swim linear infinite; will-change: transform, opacity; }
+        .floating-text-item { position: absolute; font-weight: 900; color: rgba(0, 0, 0, 0.05); white-space: nowrap; animation: float-swim linear infinite; will-change: transform, opacity; }
         @keyframes float-swim { 0% { transform: translate(0, 0) rotate(0deg); opacity: 0; } 20% { opacity: 0.8; } 80% { opacity: 0.8; } 100% { transform: translate(100px, -150px) rotate(20deg); opacity: 0; } }
 
-        /* 导航 & Hero */
-        nav { position: fixed; top: 0; width: 100%; height: 60px; z-index: 1000; display: flex; justify-content: center; backdrop-filter: blur(20px); background: rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); }
+        nav { position: fixed; top: 0; width: 100%; height: 60px; z-index: 1000; display: flex; justify-content: center; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); background: rgba(255,255,255,0.2); border-bottom: 1px solid rgba(255,255,255,0.2); }
         .nav-inner { width: 1000px; padding: 0 40px; display: flex; justify-content: space-between; align-items: center; font-weight: 600; opacity: 0.9; cursor: pointer; height: 100%; }
         .nav-text { transition: transform 0.1s; display: inline-block; white-space: nowrap; } .nav-text:active { transform: scale(0.9); }
 
@@ -70,7 +68,7 @@
         .hero h1 { font-size: clamp(40px, 9vw, 120px); font-weight: 800; line-height: 1.1; margin-bottom: 30px; color: #111; pointer-events: none; text-shadow: 0 10px 30px rgba(255,255,255,0.5); }
 
         #bubble-canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; pointer-events: auto; overflow: hidden; }
-        .bubble { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 8px 32px rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; text-align: center; font-weight: 700; color: #222; font-size: 14px; will-change: transform; transition: transform 0.1s linear; }
+        .bubble { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.9); box-shadow: 0 8px 32px rgba(0,0,0,0.05); display: flex; justify-content: center; align-items: center; text-align: center; font-weight: 700; color: #222; font-size: 14px; will-change: transform; transition: transform 0.1s linear; }
 
         .search-wrapper { position: relative; z-index: 999; width: 100%; max-width: 500px; }
         .search-box-shell { padding: 4px; border-radius: 60px; background: linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff); background-size: 400%; animation: rainbow 6s linear infinite; transform-origin: left center; transition: transform 0.5s var(--bounce); }
@@ -78,9 +76,8 @@
         .search-box-shell.active { transform: scale(1.1) translateX(10px); box-shadow: 0 30px 60px rgba(0,0,0,0.15); }
         .search-input { width: 100%; padding: 18px 24px; border-radius: 56px; border: none; outline: none; font-size: 16px; background: rgba(255,255,255,0.95); }
 
-        /* 右侧信息岛 */
         .widget-sidebar { position: absolute; right: 5%; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 50; }
-        .weather-card { width: 280px; height: 160px; background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(40px); border-radius: 30px; border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 20px 50px rgba(0,0,0,0.05); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; transition: transform 0.3s; position: relative; }
+        .weather-card { width: 280px; height: 160px; background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 30px; border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 20px 50px rgba(0,0,0,0.05); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; transition: transform 0.3s; position: relative; }
         .weather-card:hover { transform: scale(1.05); }
         .weather-main { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
         .weather-temp { font-size: 48px; font-weight: 300; color: #333; }
@@ -90,10 +87,9 @@
         .drop { position: absolute; width: 1px; height: 15px; background: rgba(0, 122, 255, 0.6); top: -20px; animation: fall linear infinite; }
         @keyframes fall { to { transform: translateY(200px); } }
         
-        /* 音乐播放器 */
         .music-card { 
             width: 280px; height: 180px; 
-            background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(40px); 
+            background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-radius: 30px; border: 1px solid rgba(255,255,255,0.8); 
             box-shadow: 0 20px 50px rgba(0,0,0,0.05); 
             padding: 20px; display: flex; flex-direction: column; justify-content: center;
@@ -121,13 +117,12 @@
         .music-card:not(.playing) .v-bar { animation-play-state: paused; height: 3px; }
         @keyframes jump { 0% { height: 3px; } 100% { height: 12px; } }
 
-        /* 3D 轮播 */
         .deck-section { padding: 100px 0 150px; overflow: hidden; mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); }
         .carousel-stage { position: relative; width: 100%; height: 500px; perspective: 1000px; display: flex; justify-content: center; align-items: center; cursor: grab; touch-action: none; }
         .carousel-stage:active { cursor: grabbing; }
         .carousel-track { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
         .web-card-wrapper { position: absolute; top: 50%; left: 50%; width: 280px; height: 400px; margin-top: -200px; margin-left: -140px; transform-style: preserve-3d; will-change: transform, opacity; }
-        .web-card-inner { width: 100%; height: 100%; background: rgba(255, 255, 255, 0.65); backdrop-filter: saturate(180%) blur(20px); border-radius: 28px; border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 10px 40px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; padding: 30px; transition: transform 0.4s var(--bounce), background 0.3s; }
+        .web-card-inner { width: 100%; height: 100%; background: rgba(255, 255, 255, 0.65); backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px); border-radius: 28px; border: 1px solid rgba(255, 255, 255, 0.8); box-shadow: 0 10px 40px rgba(0,0,0,0.08); display: flex; flex-direction: column; justify-content: space-between; padding: 30px; transition: transform 0.4s var(--bounce), background 0.3s; }
         .web-card-inner::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px; background: linear-gradient(90deg, #ff9a9e, #fad0c4); opacity: 0.8; }
         .web-card-wrapper:hover .web-card-inner { transform: translateY(-20px) scale(1.08) rotateX(2deg); background: rgba(255, 255, 255, 0.95); z-index: 100; box-shadow: 0 30px 60px rgba(0,0,0,0.15); }
         .card-icon { font-size: 40px; margin-bottom: 20px; transition: 0.3s; }
@@ -139,7 +134,7 @@
         .view-all-link { font-size: 16px; color: #0071e3; font-weight: 500; border-bottom: 1px solid transparent; transition: 0.3s; cursor: pointer; }
         .view-all-link:hover { border-bottom-color: #0071e3; }
 
-        /* --- 留言墙 (Fan / Rolodex) --- */
+        /* --- 留言墙 --- */
         .blog-stage { position: relative; width: 100%; height: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         .blog-title { position: absolute; top: 120px; width: 100%; text-align: center; font-size: 56px; font-weight: 800; letter-spacing: -0.02em; transition: all 0.6s var(--ease-out); z-index: 10; text-shadow: 0 10px 30px rgba(255,255,255,0.6); }
         
@@ -153,14 +148,12 @@
         .blog-stage.active .halo-container { left: 25%; transform: translate(-50%, -50%) scale(0.6); }
         .blog-stage.active .blog-title { opacity: 0; transform: translateY(-50px) scale(0.9); pointer-events: none; }
 
-        /* 交互热区 */
         .fan-interaction-zone {
             position: absolute; top: 30%; left: 30%; width: 600px; height: 600px;
             z-index: 150; pointer-events: none; touch-action: none;
         }
         .blog-stage.active .fan-interaction-zone { pointer-events: auto; cursor: grab; }
 
-        /* 扇形卡片容器 */
         .article-stack { 
             position: absolute; top: 50%; left: 50%; 
             width: 0px; height: 0px; 
@@ -168,7 +161,6 @@
         }
         .blog-stage.active .article-stack { opacity: 1; pointer-events: auto; }
 
-        /* 扇形卡片 */
         .stack-card { 
             position: absolute; left: -190px; top: -75px; 
             width: 380px; height: 150px; 
@@ -206,7 +198,9 @@
             z-index: 100;
         }
         .add-msg-btn:hover { transform: translateY(-50%) scale(1.1); background: #333; }
+        /* 核心修复：确保 active 状态下可点击 */
         .blog-stage.active .add-msg-btn { opacity: 1; pointer-events: auto; }
+        
         .scroll-hint { position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%); font-size: 13px; color: #666; font-weight: 500; opacity: 0; transition: opacity 0.5s; pointer-events: none; text-align: center; width: 100%;}
         .blog-stage.active .scroll-hint { opacity: 1; transition-delay: 0.5s; }
 
@@ -214,7 +208,7 @@
         .game-section { padding: 100px 0; max-width: 1200px; margin: 0 auto; }
         .game-header { text-align: center; font-size: 48px; font-weight: 800; margin-bottom: 60px; color: #222; text-shadow: 0 10px 20px rgba(255,255,255,0.5); }
         .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 40px; padding: 0 40px; }
-        .game-card { height: 340px; border-radius: 36px; background: rgba(255,255,255,0.6); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 20px 40px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.4s var(--bounce), box-shadow 0.4s; }
+        .game-card { height: 340px; border-radius: 36px; background: rgba(255,255,255,0.6); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 20px 40px rgba(0,0,0,0.05); position: relative; overflow: hidden; cursor: pointer; transition: transform 0.4s var(--bounce), box-shadow 0.4s; }
         .game-card:hover { transform: translateY(-15px) scale(1.02); box-shadow: 0 40px 80px rgba(0,0,0,0.15); z-index: 10; }
         .game-glow { position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: radial-gradient(circle at 50% 50%, var(--game-color), transparent 60%); opacity: 0.2; transition: opacity 0.4s; }
         .game-card:hover .game-glow { opacity: 0.5; }
@@ -226,9 +220,9 @@
         .game-sub { font-size: 14px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 2px; }
 
         /* 弹窗 */
-        .game-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+        .game-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .game-overlay.active { opacity: 1; pointer-events: auto; }
-        .game-modal { width: 400px; max-width: 90vw; max-height: 90vh; overflow-y: auto; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); border-radius: 24px; padding: 30px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s var(--bounce); position: relative; }
+        .game-modal { width: 400px; max-width: 90vw; max-height: 90vh; overflow-y: auto; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 24px; padding: 30px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s var(--bounce); position: relative; }
         .game-overlay.active .game-modal { transform: scale(1); }
         .modal-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
         .close-btn { position: absolute; top: 20px; right: 20px; cursor: pointer; font-size: 20px; color: #999; z-index: 10; width: 30px; height: 30px; line-height: 30px; background: rgba(0,0,0,0.05); border-radius: 50%;}
@@ -253,7 +247,6 @@
         .s-snake { background: #30d158; }
         .s-food { background: #ff3b30; border-radius: 50%; }
 
-        /* 移动端虚拟按键 */
         .mobile-controls { display: none; margin-top: 15px; gap: 10px; justify-content: center; }
         .d-pad { display: grid; grid-template-columns: 50px 50px 50px; grid-template-rows: 50px 50px; gap: 5px; }
         .d-btn { width: 50px; height: 50px; background: #eee; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; user-select: none; -webkit-user-select: none; }
@@ -277,6 +270,9 @@
         }
 
         @media (max-width: 768px) {
+            /* 移动端性能优化：减少模糊 */
+            .weather-card, .music-card, .game-card, .game-modal { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,0.95); }
+            
             .nav-inner { padding: 0 15px; font-size: 14px; }
             
             .hero { padding: 80px 20px 40px; justify-content: flex-start; align-items: center; height: auto; min-height: 100vh; }
@@ -295,7 +291,6 @@
             .blog-stage { height: 700px; }
             .blog-title { font-size: 36px; top: 80px; }
             
-            /* 修复：移动端光环可见性 */
             .halo-container { transform: translate(-50%, -50%) scale(0.8); }
             .halo-core { width: 120px; height: 120px; opacity: 1; background: radial-gradient(circle at 30% 30%, #fff, #4af, #22f); }
 
@@ -460,34 +455,48 @@
         document.addEventListener("DOMContentLoaded",()=>{
             const p=sessionStorage.getItem("sidebarScroll");if(p)setTimeout(()=>window.scrollTo(0,parseInt(p)),10);
             
-            // --- 填入的 LeanCloud 数据 ---
+            // --- 优先启动UI，防止白屏等待 ---
+            initMsgStack(); 
+            initWeather();
+            initMusic();
+            initFloatingText();
+            initRibbon();
+            
+            // --- 异步尝试加载 LeanCloud ---
+            attemptLeanCloudLoad();
+        });
+        
+        function attemptLeanCloudLoad() {
+            // 设置 10 秒超时检测（国内连接国际版可能较慢）
             const LC_APP_ID = "60GMpIJGbEtH3s2GIZZXhi6R-MdYXbMMI";
             const LC_APP_KEY = "7Rl7mxCFErwYvNijpezruXVM";
             const LC_SERVER_URL = "https://60gmpijg.api.lncldglobal.com";
             
-            // 等待 SDK 加载完毕后初始化
-            // 检查 window.AV 是否存在，如果 defer 生效慢，使用 interval 检查
+            let attempts = 0;
             const checkAV = setInterval(() => {
+                attempts++;
                 if (window.AV) {
                     clearInterval(checkAV);
                     try {
                         AV.init({ appId: LC_APP_ID, appKey: LC_APP_KEY, serverURL: LC_SERVER_URL });
-                        console.log("LeanCloud 初始化成功");
-                        initMsgStack(); // 初始化完成后再加载留言
+                        console.log("LeanCloud Connected.");
+                        fetchCloudMessages(); // 连接成功后，更新数据
                     } catch (e) {
-                        console.error("LeanCloud 初始化失败:", e);
-                        // 失败也加载本地留言，保证页面不空
-                        initMsgStack();
+                        console.error("LC Init Error:", e);
                     }
                 }
+                if (attempts > 100) { // 10秒后放弃检测
+                    clearInterval(checkAV);
+                    console.warn("LeanCloud load timeout. Using local mode.");
+                }
             }, 100);
+        }
 
-            initWeather();initMusic();initFloatingText();initRibbon();
-        });
         window.addEventListener("beforeunload",()=>sessionStorage.setItem("sidebarScroll",window.scrollY));
         
         function initRibbon() {
             const path = document.getElementById('ribbonPath');
+            if(!path) return;
             const pathLen = path.getTotalLength();
             path.style.strokeDasharray = pathLen;
             path.style.strokeDashoffset = pathLen;
@@ -504,8 +513,8 @@
         
         function initFloatingText() {
             const layer = document.getElementById('floating-text-canvas');
-            // 减少数量优化性能
-            for (let i = 0; i < 15; i++) {
+            // 优化：减少粒子数量，从15减到8，提升性能
+            for (let i = 0; i < 8; i++) {
                 const el = document.createElement('div');
                 el.className = 'floating-text-item';
                 el.innerText = "ᰔNHYᰔ";
@@ -587,7 +596,7 @@
         
         const ems=["✨","🚀","🎉","🔥","💡","🎨","💻","🌈","🍎","⚡️","📸"];document.addEventListener('click',e=>{if(e.target.closest('a')||e.target.closest('input')||e.target.closest('.nav-text')||e.target.closest('.halo-container')||e.target.closest('.stack-card')||e.target.closest('.game-card')||e.target.closest('.game-modal')||e.target.closest('.add-msg-btn')||e.target.closest('.control-btn')||e.target.closest('.d-btn'))return;ce(e.clientX,e.clientY);});function ee(x,y){for(let i=0;i<15;i++){setTimeout(()=>{const ox=(Math.random()-.5)*50,oy=(Math.random()-.5)*30;ce(x+ox,y+oy,true);},i*30);}}document.getElementById('navText1').addEventListener('click',e=>ee(e.clientX,e.clientY));document.getElementById('navText2').addEventListener('click',e=>ee(e.clientX,e.clientY));function ce(x,y,iex=false){const e=document.createElement('div');e.className='emoji-particle';e.innerText=ems[Math.floor(Math.random()*ems.length)];e.style.left=x+'px';e.style.top=y+'px';const s=Math.random()*20+20;e.style.fontSize=s+'px';if(iex){const a=Math.random()*Math.PI*2,v=Math.random()*100+50,tx=Math.cos(a)*v,ty=Math.sin(a)*v-100;e.animate([{transform:'translate(0,0) scale(0.5)',opacity:1},{transform:`translate(${tx}px,${ty}px) scale(1.2)`,opacity:0}],{duration:1e3,easing:'cubic-bezier(0.25,0.1,0.25,1)'}).onfinish=()=>e.remove();}else{e.style.animation='emoji-float-up 1s ease-out forwards';setTimeout(()=>e.remove(),1e3);}document.body.appendChild(e);}const sinp=document.getElementById('smartInput'),ssh=document.getElementById('searchShell');sinp.addEventListener('focus',()=>ssh.classList.add('active'));sinp.addEventListener('blur',()=>ssh.classList.remove('active'));sinp.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=sinp.value.trim();if(v)window.open(/^http/.test(v)?v:'https://www.baidu.com/s?wd='+encodeURIComponent(v));}});
 
-        // --- 留言墙 (LeanCloud 云端集成) ---
+        // --- 留言墙 (LeanCloud 云端集成 - 修复版) ---
         // 本地兜底数据（当云端无数据或加载失败时显示）
         let globalMsgs = [ 
             { date: "2025.06.07", content: "高考顺利！" }, 
@@ -596,7 +605,26 @@
             { date: "2023.11.20", content: "说实话，对于一个高中生来说不太好实现呀......" },
             { date: "2023.11.05", content: "我想要做一个自己的私人网站。——Ning" }
         ];
-        let reloadStackDOM;
+        
+        // 此函数在外部定义，方便 fetchCloudMessages 调用
+        let renderStackCards = function() {}; 
+
+        function fetchCloudMessages() {
+            if(!window.AV) return;
+            const query = new AV.Query('Message');
+            query.descending('createdAt'); // 按时间倒序
+            query.limit(50); // 最多拉取50条
+            query.find().then((messages) => {
+                if(messages.length > 0) {
+                    globalMsgs = messages.map(m => {
+                        const d = m.createdAt;
+                        const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
+                        return { date: dateStr, content: m.get('content') };
+                    });
+                    renderStackCards(); // 数据更新后重绘
+                }
+            }).catch(console.warn);
+        }
 
         function initMsgStack() {
             const orbBtn = document.getElementById('orbBtn');
@@ -606,29 +634,8 @@
             let isStackOpen = false;
             let state = { scroll: 0, target: 0 };
 
-            // 1. 拉取云端数据
-            if(window.AV) {
-                const query = new AV.Query('Message');
-                query.descending('createdAt'); // 按时间倒序
-                query.limit(50); // 最多拉取50条
-                query.find().then((messages) => {
-                    if(messages.length > 0) {
-                        console.log(`成功拉取到 ${messages.length} 条云端留言`);
-                        globalMsgs = messages.map(m => {
-                            const d = m.createdAt;
-                            const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
-                            return { date: dateStr, content: m.get('content') };
-                        });
-                        reloadStackDOM(); // 数据回来后，重新渲染页面
-                    } else {
-                        console.log("云端暂无留言，使用本地欢迎语");
-                    }
-                }).catch((error) => {
-                    console.warn("拉取数据失败，使用本地数据:", error);
-                });
-            }
-
-            reloadStackDOM = function() {
+            // 渲染卡片到DOM
+            renderStackCards = function() {
                 stackContainer.innerHTML = '';
                 globalMsgs.forEach((m) => { 
                     const card = document.createElement('div'); 
@@ -637,11 +644,13 @@
                     stackContainer.appendChild(card); 
                 });
             }
-            // 初始渲染
-            reloadStackDOM();
+            // 立即进行一次本地渲染
+            renderStackCards();
 
+            // 动画循环
             function loop() {
                 if (!isStackOpen) {
+                    // 如果关闭，保持卡片隐藏逻辑
                     const cards = document.querySelectorAll('.stack-card');
                     cards.forEach(c => {
                         if(c.classList.contains('visible')) {
@@ -685,6 +694,7 @@
             }
             loop();
 
+            // 事件监听 - 放在此处确保立即生效
             orbBtn.addEventListener('click', () => { 
                 isStackOpen = !isStackOpen; 
                 blogStage.classList.toggle('active', isStackOpen); 
@@ -709,7 +719,6 @@
                 e.preventDefault(); 
                 state.target = startScroll - (e.touches[0].clientY - startY) * 0.01; 
             }, {passive: false});
-            fanZone.addEventListener('touchend', () => { });
         }
 
         function openMsgModal() {
@@ -742,7 +751,7 @@
                         const d = savedMsg.createdAt;
                         const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
                         globalMsgs.unshift({ date: dateStr, content: txt });
-                        if(reloadStackDOM) reloadStackDOM();
+                        if(renderStackCards) renderStackCards();
                         resetModal(btn, inputEl);
                     }, (error) => {
                         console.error(error);
@@ -751,11 +760,11 @@
                         resetModal(btn, inputEl, false);
                     });
                 } else {
-                    alert("云端未连接，保存到本地演示。");
+                    alert("云端未连接（或加载超时），保存到本地演示。");
                     const d = new Date();
                     const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
                     globalMsgs.unshift({ date: dateStr, content: txt });
-                    if(reloadStackDOM) reloadStackDOM();
+                    if(renderStackCards) renderStackCards();
                     resetModal(btn, inputEl);
                 }
             } catch(e) { console.log(e); resetModal(btn, inputEl, false); }
