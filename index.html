@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>我の个人空间| 寧</title>
-    <!-- 引入 LeanCloud SDK -->
-    <script src="//cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
+    
+    <!-- 优化：使用 defer 异步加载 SDK，解决白屏时间过长问题 -->
+    <script src="//cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js" defer></script>
+    
     <style>
         :root {
             --text-primary: #1d1d1f;
@@ -24,7 +26,7 @@
             min-height: 100vh;
         }
 
-        /* 修复：使用伪元素实现完美的移动端固定背景，解决滚动丢失问题 */
+        /* 修复：背景层级 z-index: -10 */
         body::before {
             content: '';
             position: fixed;
@@ -43,10 +45,10 @@
         @keyframes paint-flow { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
         a { text-decoration: none; color: inherit; -webkit-user-drag: none; }
 
-        /* S型彩虹管 */
+        /* 修复：彩虹线 z-index: -5 (位于背景之上，内容之下) */
         .ribbon-container { 
             position: fixed; top: 0; left: 61.8%; height: 100vh; width: 150px; 
-            z-index: -5; pointer-events: none; transform: translateX(-50%); opacity: 0.6;
+            z-index: -5; pointer-events: none; transform: translateX(-50%); opacity: 0.8;
         }
         .ribbon-path { 
             fill: none; stroke-width: 40px; stroke-linecap: round; 
@@ -54,7 +56,7 @@
             transition: stroke-dashoffset 0.1s linear;
         }
 
-        /* 漂浮文字层 */
+        /* 漂浮文字层 z-index: -6 */
         #floating-text-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -6; pointer-events: none; overflow: hidden; }
         .floating-text-item { position: absolute; font-weight: 900; color: rgba(0, 0, 0, 0.08); white-space: nowrap; animation: float-swim linear infinite; will-change: transform, opacity; }
         @keyframes float-swim { 0% { transform: translate(0, 0) rotate(0deg); opacity: 0; } 20% { opacity: 0.8; } 80% { opacity: 0.8; } 100% { transform: translate(100px, -150px) rotate(20deg); opacity: 0; } }
@@ -137,11 +139,10 @@
         .view-all-link { font-size: 16px; color: #0071e3; font-weight: 500; border-bottom: 1px solid transparent; transition: 0.3s; cursor: pointer; }
         .view-all-link:hover { border-bottom-color: #0071e3; }
 
-        /* --- 留言墙 (修复版) --- */
+        /* --- 留言墙 (Fan / Rolodex) --- */
         .blog-stage { position: relative; width: 100%; height: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         .blog-title { position: absolute; top: 120px; width: 100%; text-align: center; font-size: 56px; font-weight: 800; letter-spacing: -0.02em; transition: all 0.6s var(--ease-out); z-index: 10; text-shadow: 0 10px 30px rgba(255,255,255,0.6); }
         
-        /* 光环核心样式优化 */
         .halo-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 180px; height: 180px; z-index: 20; transition: all 1s var(--bounce); cursor: pointer; display: flex; justify-content: center; align-items: center; }
         .halo-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); box-shadow: 0 0 30px rgba(100,200,255,0.5); animation: rotate-ring 10s linear infinite; }
         .halo-core { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,1), rgba(0, 162, 255, 0.8), rgba(0, 81, 255, 0.6)); filter: blur(8px); opacity: 0.9; box-shadow: 0 0 60px rgba(100,200,255,0.8); animation: pulse-core 3s ease-in-out infinite alternate; }
@@ -152,12 +153,14 @@
         .blog-stage.active .halo-container { left: 25%; transform: translate(-50%, -50%) scale(0.6); }
         .blog-stage.active .blog-title { opacity: 0; transform: translateY(-50px) scale(0.9); pointer-events: none; }
 
+        /* 交互热区 */
         .fan-interaction-zone {
             position: absolute; top: 30%; left: 30%; width: 600px; height: 600px;
             z-index: 150; pointer-events: none; touch-action: none;
         }
         .blog-stage.active .fan-interaction-zone { pointer-events: auto; cursor: grab; }
 
+        /* 扇形卡片容器 */
         .article-stack { 
             position: absolute; top: 50%; left: 50%; 
             width: 0px; height: 0px; 
@@ -165,6 +168,7 @@
         }
         .blog-stage.active .article-stack { opacity: 1; pointer-events: auto; }
 
+        /* 扇形卡片 */
         .stack-card { 
             position: absolute; left: -190px; top: -75px; 
             width: 380px; height: 150px; 
@@ -293,7 +297,7 @@
             
             /* 修复：移动端光环可见性 */
             .halo-container { transform: translate(-50%, -50%) scale(0.8); }
-            .halo-core { width: 120px; height: 120px; opacity: 1; background: radial-gradient(circle at 30% 30%, #fff, #4af, #22f); } /* 增加不透明度和颜色强度 */
+            .halo-core { width: 120px; height: 120px; opacity: 1; background: radial-gradient(circle at 30% 30%, #fff, #4af, #22f); }
 
             .blog-stage.active .halo-container { left: 50%; top: 15%; transform: translate(-50%, -50%) scale(0.5); }
             
@@ -456,18 +460,28 @@
         document.addEventListener("DOMContentLoaded",()=>{
             const p=sessionStorage.getItem("sidebarScroll");if(p)setTimeout(()=>window.scrollTo(0,parseInt(p)),10);
             
-            // --- TODO: 60GMpIJGbEtH3s2GIZZXhi6R-MdYXbMMI 7Rl7mxCFErwYvNijpezruXVM ---
-            // 如果没有填入，页面会使用默认的演示数据
-            const LC_APP_ID = "YOUR_LEANCLOUD_APP_ID_HERE";
-            const LC_APP_KEY = "YOUR_LEANCLOUD_APP_KEY_HERE";
+            // --- 填入的 LeanCloud 数据 ---
+            const LC_APP_ID = "60GMpIJGbEtH3s2GIZZXhi6R-MdYXbMMI";
+            const LC_APP_KEY = "7Rl7mxCFErwYvNijpezruXVM";
+            const LC_SERVER_URL = "https://60gmpijg.api.lncldglobal.com";
             
-            if (LC_APP_ID.includes("YOUR_")) {
-                console.log("使用本地演示数据。请在代码中填入 LeanCloud ID 以启用云端功能。");
-            } else {
-                AV.init({ appId: LC_APP_ID, appKey: LC_APP_KEY, serverURL: "https://your-custom-domain.leanapp.cn" }); // 国际版无需 serverURL，国内版需要绑定域名
-            }
-            
-            initMsgStack(LC_APP_ID);
+            // 等待 SDK 加载完毕后初始化
+            // 检查 window.AV 是否存在，如果 defer 生效慢，使用 interval 检查
+            const checkAV = setInterval(() => {
+                if (window.AV) {
+                    clearInterval(checkAV);
+                    try {
+                        AV.init({ appId: LC_APP_ID, appKey: LC_APP_KEY, serverURL: LC_SERVER_URL });
+                        console.log("LeanCloud 初始化成功");
+                        initMsgStack(); // 初始化完成后再加载留言
+                    } catch (e) {
+                        console.error("LeanCloud 初始化失败:", e);
+                        // 失败也加载本地留言，保证页面不空
+                        initMsgStack();
+                    }
+                }
+            }, 100);
+
             initWeather();initMusic();initFloatingText();initRibbon();
         });
         window.addEventListener("beforeunload",()=>sessionStorage.setItem("sidebarScroll",window.scrollY));
@@ -490,7 +504,8 @@
         
         function initFloatingText() {
             const layer = document.getElementById('floating-text-canvas');
-            for (let i = 0; i < 30; i++) {
+            // 减少数量优化性能
+            for (let i = 0; i < 15; i++) {
                 const el = document.createElement('div');
                 el.className = 'floating-text-item';
                 el.innerText = "ᰔNHYᰔ";
@@ -554,7 +569,6 @@
 
         const bD=[{t:"Mr.宁 👨‍💻",s:110,x:70,y:30},{t:"摄影+后期📸",s:130,x:20,y:60},{t:"武汉市",s:90,x:50,y:80},{t:"ENFJ",s:80,x:30,y:20},{t:"大学生",s:95,x:60,y:15},{t:"猫猫！🐱",s:85,x:10,y:40}],cvs=document.getElementById('bubble-canvas'),bs=[];bD.forEach(d=>{const e=document.createElement('div');e.className='bubble';e.innerText=d.t;e.style.width=d.s+'px';e.style.height=d.s+'px';cvs.appendChild(e);bs.push({e:e,bx:d.x,by:d.y,cx:0,cy:0});});let ms={x:-9e3,y:-9e3};window.addEventListener('mousemove',e=>{const r=cvs.getBoundingClientRect();ms.x=e.clientX-r.left;ms.y=e.clientY-r.top;});function ab(){const w=cvs.offsetWidth,h=cvs.offsetHeight;bs.forEach(b=>{const tx=(b.bx/100)*w,ty=(b.by/100)*h,dx=ms.x-tx,dy=ms.y-ty,d=Math.sqrt(dx*dx+dy*dy);if(d<200){const a=Math.atan2(dy,dx),f=(200-d)/200;b.cx+=((-Math.cos(a)*f*150)-b.cx)*.1;b.cy+=((-Math.sin(a)*f*150)-b.cy)*.1;}else{b.cx+=(0-b.cx)*.05;b.cy+=(0-b.cy)*.05;}const t=Date.now()/2e3;b.e.style.left=(tx-b.e.offsetWidth/2)+'px';b.e.style.top=(ty-b.e.offsetHeight/2)+'px';b.e.style.transform=`translate(${b.cx+Math.sin(t+b.bx)*10}px,${b.cy+Math.cos(t+b.by)*10}px)`;});requestAnimationFrame(ab);}ab();
         
-        // 3D 轮播 (增加 Touch 支持)
         const ws=[{name:"GitHub",icon:"🐙",desc:"Code",url:"https://github.com"},{name:"Dribbble",icon:"🏀",desc:"Design",url:"https://dribbble.com"},{name:"ChatGPT",icon:"🤖",desc:"AI",url:"https://chatgpt.com"},{name:"Bilibili",icon:"📺",desc:"Video",url:"https://bilibili.com"},{name:"YouTube",icon:"▶️",desc:"Global",url:"https://youtube.com"},{name:"V2EX",icon:"☁️",desc:"Talk",url:"https://v2ex.com"},{name:"Unsplash",icon:"📷",desc:"Photo",url:"https://unsplash.com"},{name:"Notion",icon:"📝",desc:"Note",url:"https://notion.so"},{name:"Figma",icon:"🎨",desc:"UI",url:"https://figma.com"},{name:"Apple",icon:"🍎",desc:"Think",url:"https://apple.com"},{name:"Google",icon:"🔍",desc:"Search",url:"https://google.com"},{name:"X",icon:"🐦",desc:"News",url:"https://x.com"}];
         const trk=document.getElementById('track');ws.forEach(s=>{const w=document.createElement('div');w.className='web-card-wrapper';w.innerHTML=`<div class="web-card-inner"><div class="card-icon">${s.icon}</div><div><div class="card-title">${s.name}</div><div class="card-desc">${s.desc}</div></div><a href="${s.url}" target="_blank" class="card-btn" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">Visit</a></div>`;trk.appendChild(w);});
         
@@ -574,6 +588,7 @@
         const ems=["✨","🚀","🎉","🔥","💡","🎨","💻","🌈","🍎","⚡️","📸"];document.addEventListener('click',e=>{if(e.target.closest('a')||e.target.closest('input')||e.target.closest('.nav-text')||e.target.closest('.halo-container')||e.target.closest('.stack-card')||e.target.closest('.game-card')||e.target.closest('.game-modal')||e.target.closest('.add-msg-btn')||e.target.closest('.control-btn')||e.target.closest('.d-btn'))return;ce(e.clientX,e.clientY);});function ee(x,y){for(let i=0;i<15;i++){setTimeout(()=>{const ox=(Math.random()-.5)*50,oy=(Math.random()-.5)*30;ce(x+ox,y+oy,true);},i*30);}}document.getElementById('navText1').addEventListener('click',e=>ee(e.clientX,e.clientY));document.getElementById('navText2').addEventListener('click',e=>ee(e.clientX,e.clientY));function ce(x,y,iex=false){const e=document.createElement('div');e.className='emoji-particle';e.innerText=ems[Math.floor(Math.random()*ems.length)];e.style.left=x+'px';e.style.top=y+'px';const s=Math.random()*20+20;e.style.fontSize=s+'px';if(iex){const a=Math.random()*Math.PI*2,v=Math.random()*100+50,tx=Math.cos(a)*v,ty=Math.sin(a)*v-100;e.animate([{transform:'translate(0,0) scale(0.5)',opacity:1},{transform:`translate(${tx}px,${ty}px) scale(1.2)`,opacity:0}],{duration:1e3,easing:'cubic-bezier(0.25,0.1,0.25,1)'}).onfinish=()=>e.remove();}else{e.style.animation='emoji-float-up 1s ease-out forwards';setTimeout(()=>e.remove(),1e3);}document.body.appendChild(e);}const sinp=document.getElementById('smartInput'),ssh=document.getElementById('searchShell');sinp.addEventListener('focus',()=>ssh.classList.add('active'));sinp.addEventListener('blur',()=>ssh.classList.remove('active'));sinp.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=sinp.value.trim();if(v)window.open(/^http/.test(v)?v:'https://www.baidu.com/s?wd='+encodeURIComponent(v));}});
 
         // --- 留言墙 (LeanCloud 云端集成) ---
+        // 本地兜底数据（当云端无数据或加载失败时显示）
         let globalMsgs = [ 
             { date: "2025.06.07", content: "高考顺利！" }, 
             { date: "2024.12.25", content: "Merry Christmas! 🎄" }, 
@@ -583,7 +598,7 @@
         ];
         let reloadStackDOM;
 
-        function initMsgStack(hasCloud) {
+        function initMsgStack() {
             const orbBtn = document.getElementById('orbBtn');
             const blogStage = document.getElementById('blogStage');
             const stackContainer = document.getElementById('articleStack');
@@ -591,18 +606,25 @@
             let isStackOpen = false;
             let state = { scroll: 0, target: 0 };
 
-            // 1. 获取云端数据 (如果配置了)
-            if (!hasCloud.includes("YOUR_")) {
+            // 1. 拉取云端数据
+            if(window.AV) {
                 const query = new AV.Query('Message');
                 query.descending('createdAt'); // 按时间倒序
-                query.limit(20);
+                query.limit(50); // 最多拉取50条
                 query.find().then((messages) => {
-                    globalMsgs = messages.map(m => {
-                        const d = m.createdAt;
-                        const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
-                        return { date: dateStr, content: m.get('content') };
-                    });
-                    reloadStackDOM();
+                    if(messages.length > 0) {
+                        console.log(`成功拉取到 ${messages.length} 条云端留言`);
+                        globalMsgs = messages.map(m => {
+                            const d = m.createdAt;
+                            const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
+                            return { date: dateStr, content: m.get('content') };
+                        });
+                        reloadStackDOM(); // 数据回来后，重新渲染页面
+                    } else {
+                        console.log("云端暂无留言，使用本地欢迎语");
+                    }
+                }).catch((error) => {
+                    console.warn("拉取数据失败，使用本地数据:", error);
                 });
             }
 
@@ -615,6 +637,7 @@
                     stackContainer.appendChild(card); 
                 });
             }
+            // 初始渲染
             reloadStackDOM();
 
             function loop() {
@@ -703,34 +726,48 @@
             const txt = inputEl.value;
             if(!txt.trim()) { alert("Please write something!"); return; }
             
+            const btn = document.querySelector('.msg-btn');
+            btn.innerText = "发布中...";
+            btn.disabled = true;
+
             // 提交到云端
             try {
-                if (typeof AV !== 'undefined' && AV.applicationId) {
+                if (window.AV) {
                     const MessageClass = AV.Object.extend('Message');
                     const message = new MessageClass();
                     message.set('content', txt);
-                    message.save().then(() => {
-                        alert("留言发布成功！");
+                    message.save().then((savedMsg) => {
+                        alert("发布成功！");
                         // 更新本地显示
-                        const d = new Date();
+                        const d = savedMsg.createdAt;
                         const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
                         globalMsgs.unshift({ date: dateStr, content: txt });
                         if(reloadStackDOM) reloadStackDOM();
+                        resetModal(btn, inputEl);
                     }, (error) => {
                         console.error(error);
-                        alert("发布失败，请检查网络或配置。");
+                        if(error.code === 403) alert("发布失败：权限不足。请去LeanCloud设置 Class 权限。");
+                        else alert("发布失败：" + error.message);
+                        resetModal(btn, inputEl, false);
                     });
                 } else {
-                    // 没配置云端时的降级处理
+                    alert("云端未连接，保存到本地演示。");
                     const d = new Date();
                     const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
                     globalMsgs.unshift({ date: dateStr, content: txt });
                     if(reloadStackDOM) reloadStackDOM();
+                    resetModal(btn, inputEl);
                 }
-            } catch(e) { console.log(e); }
+            } catch(e) { console.log(e); resetModal(btn, inputEl, false); }
+        }
 
-            closeGame();
-            inputEl.value = ''; 
+        function resetModal(btn, inputEl, success=true) {
+            btn.innerText = "发布";
+            btn.disabled = false;
+            if(success) {
+                closeGame();
+                inputEl.value = ''; 
+            }
         }
 
         let gameInterval = null;
