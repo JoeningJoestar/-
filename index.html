@@ -1,10 +1,11 @@
-```html
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>我の个人空间| 寧</title>
+    <!-- 引入 LeanCloud SDK -->
+    <script src="//cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
     <style>
         :root {
             --text-primary: #1d1d1f;
@@ -20,30 +21,37 @@
             overflow-x: hidden; position: relative; cursor: default;
             user-select: none; scroll-behavior: smooth;
             background-color: #ffffff;
+            min-height: 100vh;
+        }
+
+        /* 修复：使用伪元素实现完美的移动端固定背景，解决滚动丢失问题 */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -10;
             background-image: 
-                radial-gradient(at 40% 20%, rgba(255, 61, 84, 0.6) 0px, transparent 50%),
-                radial-gradient(at 80% 0%, rgba(84, 218, 255, 0.6) 0px, transparent 50%),
-                radial-gradient(at 0% 50%, rgba(213, 62, 255, 0.6) 0px, transparent 50%),
-                radial-gradient(at 80% 50%, rgba(255, 210, 61, 0.6) 0px, transparent 50%),
-                radial-gradient(at 0% 100%, rgba(255, 61, 84, 0.6) 0px, transparent 50%),
-                radial-gradient(at 80% 100%, rgba(90, 84, 255, 0.6) 0px, transparent 50%),
-                radial-gradient(at 0% 0%, rgba(255, 255, 255, 0.8) 0px, transparent 50%);
-            background-size: 150% 150%;
-            animation: paint-flow 20s ease-in-out infinite alternate;
+                radial-gradient(at 10% 10%, rgba(255, 61, 84, 0.7) 0px, transparent 50%),
+                radial-gradient(at 90% 10%, rgba(84, 218, 255, 0.7) 0px, transparent 50%),
+                radial-gradient(at 50% 50%, rgba(213, 62, 255, 0.6) 0px, transparent 50%),
+                radial-gradient(at 10% 90%, rgba(255, 210, 61, 0.7) 0px, transparent 50%),
+                radial-gradient(at 90% 90%, rgba(90, 84, 255, 0.7) 0px, transparent 50%);
+            background-size: 200% 200%;
+            animation: paint-flow 15s ease-in-out infinite alternate;
         }
         
-        @keyframes paint-flow { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes paint-flow { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
         a { text-decoration: none; color: inherit; -webkit-user-drag: none; }
 
         /* S型彩虹管 */
         .ribbon-container { 
             position: fixed; top: 0; left: 61.8%; height: 100vh; width: 150px; 
-            z-index: -5; pointer-events: none; transform: translateX(-50%); 
+            z-index: -5; pointer-events: none; transform: translateX(-50%); opacity: 0.6;
         }
         .ribbon-path { 
             fill: none; stroke-width: 40px; stroke-linecap: round; 
             filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); 
-            transition: stroke-dashoffset 0.1s linear, opacity 0.5s ease-in;
+            transition: stroke-dashoffset 0.1s linear;
         }
 
         /* 漂浮文字层 */
@@ -92,37 +100,19 @@
         }
         .music-card:hover { transform: scale(1.02); }
         .music-content { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; z-index: 2; }
-        
-        /* 专辑封面：旋转动画 */
-        .album-art { 
-            width: 60px; height: 60px; border-radius: 50%; 
-            background: #1d1d1f url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80') center/cover;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2); 
-            animation: spin 10s linear infinite; 
-            animation-play-state: paused;
-        }
+        .album-art { width: 60px; height: 60px; border-radius: 50%; background: #1d1d1f url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80') center/cover; box-shadow: 0 8px 16px rgba(0,0,0,0.2); animation: spin 10s linear infinite; animation-play-state: paused; }
         .music-card.playing .album-art { animation-play-state: running; }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
         .music-info { overflow: hidden; display: flex; flex-direction: column; gap: 2px; width: 100%; }
         .music-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #222; }
         .music-artist { font-size: 12px; color: #666; }
-        
         .music-controls { display: flex; align-items: center; gap: 10px; z-index: 2; justify-content: space-between; width: 100%; margin-top: 10px;}
         .control-btn { width: 32px; height: 32px; border-radius: 50%; background: transparent; color: #1d1d1f; border: 1px solid #eee; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: 0.2s; font-size: 14px; flex-shrink: 0; }
         .control-btn:hover { background: #eee; }
         .control-btn.play { background: #1d1d1f; color: #fff; border: none; width: 40px; height: 40px; font-size: 16px; }
         .control-btn.play:hover { transform: scale(1.1); background: #333; }
-        
-        .progress-container { 
-            position: relative; width: 100%; height: 4px; background: rgba(0,0,0,0.08); 
-            border-radius: 2px; cursor: pointer; margin-top: 5px;
-        }
-        .progress-bar { 
-            position: absolute; top: 0; left: 0; height: 100%; 
-            background: #1d1d1f; border-radius: 2px; width: 0%; pointer-events: none; 
-        }
-        /* 频谱条 */
+        .progress-container { position: relative; width: 100%; height: 4px; background: rgba(0,0,0,0.08); border-radius: 2px; cursor: pointer; margin-top: 5px; }
+        .progress-bar { position: absolute; top: 0; left: 0; height: 100%; background: #1d1d1f; border-radius: 2px; width: 0%; pointer-events: none; }
         .visualizer { display: flex; gap: 2px; height: 12px; align-items: flex-end; position: absolute; right: 20px; top: 20px; }
         .v-bar { width: 3px; background: #db9d46; border-radius: 2px; animation: jump 0.5s ease-in-out infinite alternate; }
         .v-bar:nth-child(1) { height: 6px; animation-delay: 0s; } .v-bar:nth-child(2) { height: 10px; animation-delay: 0.1s; } .v-bar:nth-child(3) { height: 4px; animation-delay: 0.2s; }
@@ -147,29 +137,27 @@
         .view-all-link { font-size: 16px; color: #0071e3; font-weight: 500; border-bottom: 1px solid transparent; transition: 0.3s; cursor: pointer; }
         .view-all-link:hover { border-bottom-color: #0071e3; }
 
-        /* --- 留言墙 (Fan / Rolodex) --- */
+        /* --- 留言墙 (修复版) --- */
         .blog-stage { position: relative; width: 100%; height: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         .blog-title { position: absolute; top: 120px; width: 100%; text-align: center; font-size: 56px; font-weight: 800; letter-spacing: -0.02em; transition: all 0.6s var(--ease-out); z-index: 10; text-shadow: 0 10px 30px rgba(255,255,255,0.6); }
         
+        /* 光环核心样式优化 */
         .halo-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 180px; height: 180px; z-index: 20; transition: all 1s var(--bounce); cursor: pointer; display: flex; justify-content: center; align-items: center; }
-        .halo-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid rgba(255,255,255,0.3); box-shadow: 0 0 30px rgba(100,200,255,0.2); animation: rotate-ring 10s linear infinite; }
-        .halo-core { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.9), rgba(100,200,255,0.5), rgba(50,100,255,0.1)); filter: blur(5px); opacity: 0.8; box-shadow: 0 0 60px rgba(100,200,255,0.6); animation: pulse-core 3s ease-in-out infinite alternate; }
-        .halo-glow { position: absolute; width: 140%; height: 140%; border-radius: 50%; background: conic-gradient(from 0deg, transparent, rgba(0,200,255,0.2), transparent 60%); animation: rotate-ring 4s linear infinite reverse; filter: blur(10px); }
+        .halo-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 2px solid rgba(255,255,255,0.6); box-shadow: 0 0 30px rgba(100,200,255,0.5); animation: rotate-ring 10s linear infinite; }
+        .halo-core { width: 100px; height: 100px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, rgba(255,255,255,1), rgba(0, 162, 255, 0.8), rgba(0, 81, 255, 0.6)); filter: blur(8px); opacity: 0.9; box-shadow: 0 0 60px rgba(100,200,255,0.8); animation: pulse-core 3s ease-in-out infinite alternate; }
+        .halo-glow { position: absolute; width: 140%; height: 140%; border-radius: 50%; background: conic-gradient(from 0deg, transparent, rgba(0,200,255,0.6), transparent 60%); animation: rotate-ring 4s linear infinite reverse; filter: blur(20px); }
         @keyframes rotate-ring { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes pulse-core { 0% { transform: scale(0.9); opacity: 0.6; } 100% { transform: scale(1.1); opacity: 0.9; } }
+        @keyframes pulse-core { 0% { transform: scale(0.9); opacity: 0.8; } 100% { transform: scale(1.1); opacity: 1; } }
         
         .blog-stage.active .halo-container { left: 25%; transform: translate(-50%, -50%) scale(0.6); }
         .blog-stage.active .blog-title { opacity: 0; transform: translateY(-50px) scale(0.9); pointer-events: none; }
 
-        /* 交互热区 */
         .fan-interaction-zone {
             position: absolute; top: 30%; left: 30%; width: 600px; height: 600px;
             z-index: 150; pointer-events: none; touch-action: none;
         }
         .blog-stage.active .fan-interaction-zone { pointer-events: auto; cursor: grab; }
-        .blog-stage.active .fan-interaction-zone:active { cursor: grabbing; }
 
-        /* 扇形卡片容器 */
         .article-stack { 
             position: absolute; top: 50%; left: 50%; 
             width: 0px; height: 0px; 
@@ -177,7 +165,6 @@
         }
         .blog-stage.active .article-stack { opacity: 1; pointer-events: auto; }
 
-        /* 扇形卡片 */
         .stack-card { 
             position: absolute; left: -190px; top: -75px; 
             width: 380px; height: 150px; 
@@ -288,44 +275,40 @@
         @media (max-width: 768px) {
             .nav-inner { padding: 0 15px; font-size: 14px; }
             
-            /* Hero 重构 */
             .hero { padding: 80px 20px 40px; justify-content: flex-start; align-items: center; height: auto; min-height: 100vh; }
             .hero h1 { font-size: 42px; text-align: center; margin-top: 20px; }
             .search-wrapper { max-width: 90%; }
             
-            /* 侧边栏改为底部垂直排列 */
             .widget-sidebar { position: relative; top: auto; right: auto; transform: none; margin-top: 40px; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; }
             
             .ribbon-container { left: 90%; opacity: 0.3; }
 
-            /* 轮播图适配 */
             .carousel-stage { height: 400px; }
             .web-card-wrapper { width: 220px; height: 320px; margin-top: -160px; margin-left: -110px; }
             .web-card-inner { padding: 20px; }
             .card-icon { font-size: 30px; }
             
-            /* 留言墙适配 */
             .blog-stage { height: 700px; }
             .blog-title { font-size: 36px; top: 80px; }
+            
+            /* 修复：移动端光环可见性 */
             .halo-container { transform: translate(-50%, -50%) scale(0.8); }
+            .halo-core { width: 120px; height: 120px; opacity: 1; background: radial-gradient(circle at 30% 30%, #fff, #4af, #22f); } /* 增加不透明度和颜色强度 */
+
             .blog-stage.active .halo-container { left: 50%; top: 15%; transform: translate(-50%, -50%) scale(0.5); }
             
-            /* 扇形区域缩小，防止溢出屏幕 */
             .fan-interaction-zone { width: 300px; height: 300px; top: 40%; left: 50%; transform: translateX(-50%); }
             .stack-card { left: -140px; width: 280px; height: 130px; }
             .stack-title { font-size: 16px; }
             .add-msg-btn { right: 20px; bottom: 20px; top: auto; transform: none; }
             .add-msg-btn:hover { transform: scale(1.1); }
 
-            /* 游戏卡片 */
             .game-grid { grid-template-columns: 1fr; padding: 0 20px; }
             .game-card { height: 280px; }
             
-            /* 弹窗适配 */
             .game-modal { padding: 20px; width: 95%; }
             .tetris-board, .snake-board { transform: scale(0.9); margin-bottom: 10px; }
             
-            /* 显示虚拟按键 */
             .mobile-controls { display: flex; }
             
             .scroll-hint { font-size: 12px; bottom: 80px; }
@@ -427,8 +410,9 @@
         <div class="game-modal" id="modalMsg" style="display:none;">
             <div class="close-btn" onclick="closeGame()">✕</div>
             <div class="modal-title">写下留言 ᰔ</div>
-            <textarea class="msg-input" id="newMsgContent" placeholder="今天发生了什么有趣的事？(100字以内)" maxlength="100"></textarea>
+            <textarea class="msg-input" id="newMsgContent" placeholder="无需登录，直接留言！(100字以内)" maxlength="100"></textarea>
             <button class="msg-btn" onclick="submitMsg()">发布</button>
+            <div style="font-size: 12px; color: #999; margin-top: 10px;">Powered by LeanCloud Serverless</div>
         </div>
         
         <div class="game-modal" id="modalMinesweeper" style="display:none;"><div class="close-btn" onclick="closeGame()">✕</div><div class="modal-title">Minesweeper</div><div class="minesweeper-board" id="msBoard"></div><div id="msStatus">Find 10 Mines</div></div>
@@ -471,7 +455,20 @@
     <script>
         document.addEventListener("DOMContentLoaded",()=>{
             const p=sessionStorage.getItem("sidebarScroll");if(p)setTimeout(()=>window.scrollTo(0,parseInt(p)),10);
-            initMsgStack();initWeather();initMusic();initFloatingText();initRibbon();
+            
+            // --- TODO: 60GMpIJGbEtH3s2GIZZXhi6R-MdYXbMMI 7Rl7mxCFErwYvNijpezruXVM ---
+            // 如果没有填入，页面会使用默认的演示数据
+            const LC_APP_ID = "YOUR_LEANCLOUD_APP_ID_HERE";
+            const LC_APP_KEY = "YOUR_LEANCLOUD_APP_KEY_HERE";
+            
+            if (LC_APP_ID.includes("YOUR_")) {
+                console.log("使用本地演示数据。请在代码中填入 LeanCloud ID 以启用云端功能。");
+            } else {
+                AV.init({ appId: LC_APP_ID, appKey: LC_APP_KEY, serverURL: "https://your-custom-domain.leanapp.cn" }); // 国际版无需 serverURL，国内版需要绑定域名
+            }
+            
+            initMsgStack(LC_APP_ID);
+            initWeather();initMusic();initFloatingText();initRibbon();
         });
         window.addEventListener("beforeunload",()=>sessionStorage.setItem("sidebarScroll",window.scrollY));
         
@@ -563,13 +560,11 @@
         
         const stg=document.getElementById('carouselStage'),cds=document.querySelectorAll('.web-card-wrapper'),cnt=cds.length;let prg=0,tPrg=0,isD=false,sx=0,st=0,mxr=0;
         
-        // Mouse Events
         stg.addEventListener('mousemove',e=>{mxr=e.clientX-stg.getBoundingClientRect().left;});stg.addEventListener('mouseleave',()=>{mxr=-1;});
         stg.addEventListener('mousedown',e=>{isD=true;sx=e.clientX;st=tPrg;stg.style.cursor='grabbing';});
         window.addEventListener('mousemove',e=>{if(!isD)return;const d=e.clientX-sx;tPrg=st-(d/200);});
         window.addEventListener('mouseup',()=>{isD=false;stg.style.cursor='grab';});
         
-        // Touch Events
         stg.addEventListener('touchstart',e=>{isD=true;sx=e.touches[0].clientX;st=tPrg;}, {passive: false});
         stg.addEventListener('touchmove',e=>{if(!isD)return; e.preventDefault(); const d=e.touches[0].clientX-sx;tPrg=st-(d/200);}, {passive: false});
         stg.addEventListener('touchend',()=>{isD=false;});
@@ -578,27 +573,38 @@
         
         const ems=["✨","🚀","🎉","🔥","💡","🎨","💻","🌈","🍎","⚡️","📸"];document.addEventListener('click',e=>{if(e.target.closest('a')||e.target.closest('input')||e.target.closest('.nav-text')||e.target.closest('.halo-container')||e.target.closest('.stack-card')||e.target.closest('.game-card')||e.target.closest('.game-modal')||e.target.closest('.add-msg-btn')||e.target.closest('.control-btn')||e.target.closest('.d-btn'))return;ce(e.clientX,e.clientY);});function ee(x,y){for(let i=0;i<15;i++){setTimeout(()=>{const ox=(Math.random()-.5)*50,oy=(Math.random()-.5)*30;ce(x+ox,y+oy,true);},i*30);}}document.getElementById('navText1').addEventListener('click',e=>ee(e.clientX,e.clientY));document.getElementById('navText2').addEventListener('click',e=>ee(e.clientX,e.clientY));function ce(x,y,iex=false){const e=document.createElement('div');e.className='emoji-particle';e.innerText=ems[Math.floor(Math.random()*ems.length)];e.style.left=x+'px';e.style.top=y+'px';const s=Math.random()*20+20;e.style.fontSize=s+'px';if(iex){const a=Math.random()*Math.PI*2,v=Math.random()*100+50,tx=Math.cos(a)*v,ty=Math.sin(a)*v-100;e.animate([{transform:'translate(0,0) scale(0.5)',opacity:1},{transform:`translate(${tx}px,${ty}px) scale(1.2)`,opacity:0}],{duration:1e3,easing:'cubic-bezier(0.25,0.1,0.25,1)'}).onfinish=()=>e.remove();}else{e.style.animation='emoji-float-up 1s ease-out forwards';setTimeout(()=>e.remove(),1e3);}document.body.appendChild(e);}const sinp=document.getElementById('smartInput'),ssh=document.getElementById('searchShell');sinp.addEventListener('focus',()=>ssh.classList.add('active'));sinp.addEventListener('blur',()=>ssh.classList.remove('active'));sinp.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=sinp.value.trim();if(v)window.open(/^http/.test(v)?v:'https://www.baidu.com/s?wd='+encodeURIComponent(v));}});
 
-        // --- 留言墙 (Fan/Rolodex) Mobile Adapted ---
-        let globalMsgs = [];
+        // --- 留言墙 (LeanCloud 云端集成) ---
+        let globalMsgs = [ 
+            { date: "2025.06.07", content: "高考顺利！" }, 
+            { date: "2024.12.25", content: "Merry Christmas! 🎄" }, 
+            { date: "2024.12.10", content: "AI越来越发达了。——Ning" },
+            { date: "2023.11.20", content: "说实话，对于一个高中生来说不太好实现呀......" },
+            { date: "2023.11.05", content: "我想要做一个自己的私人网站。——Ning" }
+        ];
         let reloadStackDOM;
 
-        function initMsgStack() {
-            const saved = localStorage.getItem('nhy_msgs');
-            globalMsgs = saved ? JSON.parse(saved) : [ 
-                { date: "2025.06.07", content: "高考顺利！" }, 
-                { date: "2024.12.25", content: "Merry Christmas! 🎄" }, 
-                { date: "2024.12.10", content: "AI越来越发达了。——Ning" },
-                { date: "2023.11.20", content: "说实话，对于一个高中生来说不太好实现呀......" },
-                { date: "2023.11.05", content: "我想要做一个自己的私人网站。——Ning" }
-            ];
-
+        function initMsgStack(hasCloud) {
             const orbBtn = document.getElementById('orbBtn');
             const blogStage = document.getElementById('blogStage');
             const stackContainer = document.getElementById('articleStack');
             const fanZone = document.getElementById('fanZone');
             let isStackOpen = false;
-
             let state = { scroll: 0, target: 0 };
+
+            // 1. 获取云端数据 (如果配置了)
+            if (!hasCloud.includes("YOUR_")) {
+                const query = new AV.Query('Message');
+                query.descending('createdAt'); // 按时间倒序
+                query.limit(20);
+                query.find().then((messages) => {
+                    globalMsgs = messages.map(m => {
+                        const d = m.createdAt;
+                        const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
+                        return { date: dateStr, content: m.get('content') };
+                    });
+                    reloadStackDOM();
+                });
+            }
 
             reloadStackDOM = function() {
                 stackContainer.innerHTML = '';
@@ -669,30 +675,18 @@
                 state.target += e.deltaY * 0.0025; 
             });
 
-            // Mouse Drag
-            let isDragging = false, startY = 0, startScroll = 0;
-            fanZone.addEventListener('mousedown', (e) => {
-                if (!isStackOpen) return;
-                isDragging = true; startY = e.clientY; startScroll = state.target; fanZone.style.cursor = 'grabbing';
-            });
-            window.addEventListener('mousemove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault();
-                state.target = startScroll - (e.clientY - startY) * 0.01; 
-            });
-            window.addEventListener('mouseup', () => { if (isDragging) { isDragging = false; fanZone.style.cursor = 'grab'; } });
-
             // Touch Drag
+            let startY = 0, startScroll = 0;
             fanZone.addEventListener('touchstart', (e) => {
                 if (!isStackOpen) return;
-                isDragging = true; startY = e.touches[0].clientY; startScroll = state.target;
+                startY = e.touches[0].clientY; startScroll = state.target;
             }, {passive: false});
             fanZone.addEventListener('touchmove', (e) => {
-                if (!isDragging) return;
-                e.preventDefault(); // Stop page scrolling
+                if (!isStackOpen) return;
+                e.preventDefault(); 
                 state.target = startScroll - (e.touches[0].clientY - startY) * 0.01; 
             }, {passive: false});
-            fanZone.addEventListener('touchend', () => { isDragging = false; });
+            fanZone.addEventListener('touchend', () => { });
         }
 
         function openMsgModal() {
@@ -708,11 +702,33 @@
             const inputEl = document.getElementById('newMsgContent');
             const txt = inputEl.value;
             if(!txt.trim()) { alert("Please write something!"); return; }
-            const d = new Date();
-            const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
-            globalMsgs.unshift({ date: dateStr, content: txt });
-            localStorage.setItem('nhy_msgs', JSON.stringify(globalMsgs));
-            if(reloadStackDOM) reloadStackDOM();
+            
+            // 提交到云端
+            try {
+                if (typeof AV !== 'undefined' && AV.applicationId) {
+                    const MessageClass = AV.Object.extend('Message');
+                    const message = new MessageClass();
+                    message.set('content', txt);
+                    message.save().then(() => {
+                        alert("留言发布成功！");
+                        // 更新本地显示
+                        const d = new Date();
+                        const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
+                        globalMsgs.unshift({ date: dateStr, content: txt });
+                        if(reloadStackDOM) reloadStackDOM();
+                    }, (error) => {
+                        console.error(error);
+                        alert("发布失败，请检查网络或配置。");
+                    });
+                } else {
+                    // 没配置云端时的降级处理
+                    const d = new Date();
+                    const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
+                    globalMsgs.unshift({ date: dateStr, content: txt });
+                    if(reloadStackDOM) reloadStackDOM();
+                }
+            } catch(e) { console.log(e); }
+
             closeGame();
             inputEl.value = ''; 
         }
@@ -757,4 +773,3 @@
     </script>
 </body>
 </html>
-```
