@@ -744,24 +744,32 @@
                     const message = new MessageClass();
                     message.set('content', txt);
                     message.save().then((savedMsg) => {
-                        // 成功
-                        alert("发布成功！");
-                        const d = savedMsg.createdAt;
-                        const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
-                        globalMsgs.unshift({ date: dateStr, content: txt });
-                        if(renderStackCards) renderStackCards();
-                        resetModal(btn, inputEl);
-                    }, (error) => {
-                        // 失败 (网络问题或CORS问题) -> 转为本地发布
-                        console.warn("Cloud save failed, using local fallback:", error);
-                        // 模拟发布成功
-                        alert("发布成功！(本地模式)");
-                        const d = new Date();
-                        const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
-                        globalMsgs.unshift({ date: dateStr, content: txt });
-                        if(renderStackCards) renderStackCards();
-                        resetModal(btn, inputEl);
-                    });
+    // 成功部分不变
+    alert("发布成功！");
+    const d = savedMsg.createdAt;
+    const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
+    globalMsgs.unshift({ date: dateStr, content: txt });
+    if(renderStackCards) renderStackCards();
+    resetModal(btn, inputEl);
+}, (error) => {
+    // === 修改这里 ===
+    // 不要直接转入本地模式，先弹窗告诉我报错信息
+    console.error(error); // 在控制台打印详细信息
+    alert("LeanCloud 连接失败！错误代码: " + error.code + "\n错误信息: " + error.message);
+    
+    // 如果你想保留本地模式作为备选，可以保留下面的代码，但在调试阶段建议先注释掉
+    /*
+    console.warn("Cloud save failed, using local fallback:", error);
+    alert("发布成功！(本地模式)");
+    const d = new Date();
+    // ...
+    resetModal(btn, inputEl);
+    */
+    
+    // 恢复按钮状态以便重试
+    btn.innerText = "发布";
+    btn.disabled = false;
+});
                 } else {
                     // SDK未加载 -> 本地发布
                     alert("发布成功！(本地模式)");
