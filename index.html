@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>我の个人空间| 寧</title>
+    <title>我の个人空间 | 寧 (Final Beta CN)</title>
     
-    <!-- 优化：使用 defer 异步加载 SDK -->
+    <!-- 引入 LeanCloud SDK -->
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
-    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/leancloud-storage@4.15.0/dist/av-min.js"></script>
     
     <style>
         :root {
@@ -27,12 +27,8 @@
             min-height: 100vh;
         }
 
-        /* 优化：背景渲染性能优化，减少重绘区域 */
         body::before {
-            content: '';
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -10;
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -10;
             background-image: 
                 radial-gradient(at 10% 10%, rgba(255, 61, 84, 0.5) 0px, transparent 50%),
                 radial-gradient(at 90% 10%, rgba(84, 218, 255, 0.5) 0px, transparent 50%),
@@ -41,10 +37,11 @@
             animation: paint-flow 25s ease-in-out infinite alternate;
             will-change: background-position;
         }
-        
         @keyframes paint-flow { 0% { background-position: 0% 0%; } 100% { background-position: 100% 100%; } }
+        
         a { text-decoration: none; color: inherit; -webkit-user-drag: none; }
 
+        /* --- 修复: 彩虹线防闪烁 --- */
         .ribbon-container { 
             position: fixed; top: 0; left: 61.8%; height: 100vh; width: 150px; 
             z-index: -5; pointer-events: none; transform: translateX(-50%); opacity: 0.8;
@@ -52,7 +49,8 @@
         .ribbon-path { 
             fill: none; stroke-width: 40px; stroke-linecap: round; 
             filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); 
-            transition: stroke-dashoffset 0.1s linear;
+            opacity: 0; 
+            transition: opacity 0.5s ease-in, stroke-dashoffset 0.1s linear;
         }
 
         #floating-text-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -6; pointer-events: none; overflow: hidden; }
@@ -76,8 +74,9 @@
         .search-input { width: 100%; padding: 18px 24px; border-radius: 56px; border: none; outline: none; font-size: 16px; background: rgba(255,255,255,0.95); }
 
         .widget-sidebar { position: absolute; right: 5%; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 20px; z-index: 50; }
-        .weather-card { width: 280px; height: 160px; background: rgba(255, 255, 255, 0.3); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 30px; border: 1px solid rgba(255,255,255,0.5); box-shadow: 0 20px 50px rgba(0,0,0,0.05); padding: 25px; display: flex; flex-direction: column; justify-content: space-between; overflow: hidden; transition: transform 0.3s; position: relative; }
-        .weather-card:hover { transform: scale(1.05); }
+        .weather-card, .music-card { background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 30px; border: 1px solid rgba(255,255,255,0.8); box-shadow: 0 20px 50px rgba(0,0,0,0.05); transition: transform 0.3s; position: relative; overflow: hidden; }
+        .weather-card { width: 280px; height: 160px; padding: 25px; display: flex; flex-direction: column; justify-content: space-between; }
+        .weather-card:hover, .music-card:hover { transform: scale(1.05); }
         .weather-main { display: flex; justify-content: space-between; align-items: center; z-index: 2; position: relative; }
         .weather-temp { font-size: 48px; font-weight: 300; color: #333; }
         .weather-city { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 4px; }
@@ -86,16 +85,7 @@
         .drop { position: absolute; width: 1px; height: 15px; background: rgba(0, 122, 255, 0.6); top: -20px; animation: fall linear infinite; }
         @keyframes fall { to { transform: translateY(200px); } }
         
-        .music-card { 
-            width: 280px; height: 180px; 
-            background: rgba(255, 255, 255, 0.65); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-            border-radius: 30px; border: 1px solid rgba(255,255,255,0.8); 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.05); 
-            padding: 20px; display: flex; flex-direction: column; justify-content: center;
-            transition: transform 0.3s; position: relative; overflow: hidden; 
-            user-select: none;
-        }
-        .music-card:hover { transform: scale(1.02); }
+        .music-card { width: 280px; height: 180px; padding: 20px; display: flex; flex-direction: column; justify-content: center; user-select: none; }
         .music-content { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; z-index: 2; }
         .album-art { width: 60px; height: 60px; border-radius: 50%; background: #1d1d1f url('https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&q=80') center/cover; box-shadow: 0 8px 16px rgba(0,0,0,0.2); animation: spin 10s linear infinite; animation-play-state: paused; }
         .music-card.playing .album-art { animation-play-state: running; }
@@ -129,11 +119,53 @@
         .card-title { font-size: 24px; font-weight: 700; color: #111; margin-bottom: 5px; }
         .card-desc { font-size: 14px; color: #666; line-height: 1.5; }
         .card-btn { margin-top: auto; padding: 10px 20px; background: #000; color: #fff; border-radius: 20px; font-size: 13px; font-weight: 600; width: fit-content; pointer-events: auto; }
+        
         .view-all-container { text-align: center; position: relative; z-index: 10; margin-top: -40px; }
         .view-all-link { font-size: 16px; color: #0071e3; font-weight: 500; border-bottom: 1px solid transparent; transition: 0.3s; cursor: pointer; }
         .view-all-link:hover { border-bottom-color: #0071e3; }
 
-        /* --- 留言墙 --- */
+        /* --- 新增：所有网站子页面 (Overlay) --- */
+        .subpage-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(245, 245, 247, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            z-index: 2000;
+            transform: translateY(100%); transition: transform 0.5s var(--bounce);
+            display: flex; flex-direction: column;
+            overflow-y: auto;
+        }
+        .subpage-overlay.active { transform: translateY(0); }
+        
+        .subpage-header {
+            position: sticky; top: 0; left: 0; width: 100%; height: 80px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 0 40px; z-index: 10;
+            background: rgba(255,255,255,0.8); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+        .subpage-title { font-size: 24px; font-weight: 800; color: #1d1d1f; }
+        .subpage-close { 
+            font-size: 16px; font-weight: 600; color: #0071e3; cursor: pointer; padding: 10px; 
+            background: rgba(0,113,227,0.1); border-radius: 20px; transition: 0.2s;
+        }
+        .subpage-close:hover { background: rgba(0,113,227,0.2); }
+        
+        .subpage-grid {
+            padding: 40px; max-width: 1200px; margin: 0 auto; width: 100%;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 30px;
+        }
+        .flat-web-card {
+            background: #fff; border-radius: 20px; padding: 25px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+            transition: all 0.3s var(--ease-out); cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.02); display: flex; flex-direction: column;
+        }
+        .flat-web-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,0.1); }
+        .flat-icon { font-size: 32px; margin-bottom: 15px; }
+        .flat-name { font-size: 18px; font-weight: 700; color: #111; margin-bottom: 5px; }
+        .flat-desc { font-size: 13px; color: #888; margin-bottom: 20px; line-height: 1.4; }
+        .flat-link { margin-top: auto; font-size: 13px; font-weight: 600; color: #0071e3; }
+
+        /* 留言墙 */
         .blog-stage { position: relative; width: 100%; height: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
         .blog-title { position: absolute; top: 120px; width: 100%; text-align: center; font-size: 56px; font-weight: 800; letter-spacing: -0.02em; transition: all 0.6s var(--ease-out); z-index: 10; text-shadow: 0 10px 30px rgba(255,255,255,0.6); }
         
@@ -147,57 +179,34 @@
         .blog-stage.active .halo-container { left: 25%; transform: translate(-50%, -50%) scale(0.6); }
         .blog-stage.active .blog-title { opacity: 0; transform: translateY(-50px) scale(0.9); pointer-events: none; }
 
-        .fan-interaction-zone {
-            position: absolute; top: 30%; left: 30%; width: 600px; height: 600px;
-            z-index: 150; pointer-events: none; touch-action: none;
-        }
+        .fan-interaction-zone { position: absolute; top: 30%; left: 30%; width: 600px; height: 600px; z-index: 150; pointer-events: none; touch-action: none; }
         .blog-stage.active .fan-interaction-zone { pointer-events: auto; cursor: grab; }
-
-        .article-stack { 
-            position: absolute; top: 50%; left: 50%; 
-            width: 0px; height: 0px; 
-            opacity: 0; pointer-events: none; 
-        }
+        .article-stack { position: absolute; top: 50%; left: 50%; width: 0px; height: 0px; opacity: 0; pointer-events: none; }
         .blog-stage.active .article-stack { opacity: 1; pointer-events: auto; }
 
         .stack-card { 
-            position: absolute; left: -190px; top: -75px; 
-            width: 380px; height: 150px; 
+            position: absolute; left: -190px; top: -75px; width: 380px; height: 150px; 
             background: rgba(255, 255, 255, 0.9); backdrop-filter: saturate(180%) blur(20px); 
-            border: 1px solid rgba(255,255,255,0.8); border-radius: 24px; 
-            box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
-            display: flex; flex-direction: column; justify-content: center; padding: 25px;
-            overflow: hidden; 
-            will-change: transform;
-            transform-origin: -150% 50%; 
-            transition: transform 0.6s var(--bounce), opacity 0.4s ease, box-shadow 0.3s;
-            user-select: none;
-            opacity: 0; 
-            transform: rotateZ(0deg) scale(0.5) translateX(-200px); 
+            border: 1px solid rgba(255,255,255,0.8); border-radius: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); 
+            display: flex; flex-direction: column; justify-content: center; padding: 25px; overflow: hidden; 
+            will-change: transform; transform-origin: -150% 50%; 
+            transition: transform 0.6s var(--bounce), opacity 0.4s ease;
+            user-select: none; opacity: 0; transform: rotateZ(0deg) scale(0.5) translateX(-200px); 
         }
         .stack-card.visible { opacity: 1; }
-
-        .stack-card.focus {
-            background: #fff;
-            box-shadow: 0 30px 70px rgba(0,0,0,0.2);
-            border-color: #fff;
-            z-index: 1000;
-        }
+        .stack-card.focus { background: #fff; box-shadow: 0 30px 70px rgba(0,0,0,0.2); border-color: #fff; z-index: 1000; }
         .stack-date { font-size: 12px; color: #999; margin-bottom: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
         .stack-card.focus .stack-date { color: #0071e3; }
         .stack-title { font-size: 18px; font-weight: 600; color: #222; line-height: 1.4; word-break: break-all; }
         
         .add-msg-btn {
             position: absolute; top: 50%; right: 5%; transform: translateY(-50%);
-            width: 60px; height: 60px; border-radius: 50%;
-            background: #111; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            display: flex; justify-content: center; align-items: center;
-            font-size: 30px; color: #fff; cursor: pointer;
-            opacity: 0; transition: all 0.3s var(--bounce); pointer-events: none;
-            z-index: 100;
+            width: 60px; height: 60px; border-radius: 50%; background: #111; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); display: flex; justify-content: center; align-items: center;
+            font-size: 30px; color: #fff; cursor: pointer; opacity: 0; transition: all 0.3s var(--bounce); 
+            pointer-events: none; z-index: 100;
         }
         .add-msg-btn:hover { transform: translateY(-50%) scale(1.1); background: #333; }
-        /* 核心修复：确保 active 状态下可点击 */
         .blog-stage.active .add-msg-btn { opacity: 1; pointer-events: auto; }
         
         .scroll-hint { position: absolute; bottom: 10%; left: 50%; transform: translateX(-50%); font-size: 13px; color: #666; font-weight: 500; opacity: 0; transition: opacity 0.5s; pointer-events: none; text-align: center; width: 100%;}
@@ -218,7 +227,6 @@
         .game-title { font-size: 28px; font-weight: 800; margin-bottom: 5px; color: #111; }
         .game-sub { font-size: 14px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: 2px; }
 
-        /* 弹窗 */
         .game-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 9999; display: flex; justify-content: center; align-items: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
         .game-overlay.active { opacity: 1; pointer-events: auto; }
         .game-modal { width: 400px; max-width: 90vw; max-height: 90vh; overflow-y: auto; background: rgba(255,255,255,0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-radius: 24px; padding: 30px; box-shadow: 0 40px 100px rgba(0,0,0,0.2); text-align: center; transform: scale(0.9); transition: transform 0.3s var(--bounce); position: relative; }
@@ -230,7 +238,6 @@
         .msg-btn { background: #111; color: #fff; padding: 10px 30px; border-radius: 20px; font-weight: 600; cursor: pointer; border: none; transition: 0.2s; }
         .msg-btn:hover { background: #333; transform: scale(1.05); }
 
-        /* 游戏板 */
         .minesweeper-board { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-bottom: 20px; background: #eee; padding: 4px; border-radius: 8px; user-select: none; }
         .cell { width: 100%; aspect-ratio: 1; background: #ccc; border-radius: 4px; display: flex; justify-content: center; align-items: center; font-size: 14px; font-weight: 700; cursor: pointer; user-select: none; }
         .cell:hover { background: #bbb; }
@@ -261,7 +268,6 @@
         
         footer { text-align: center; padding: 60px; color: #666; font-size: 13px; font-weight: 600; }
 
-        /* --- Mobile / Pad Optimization --- */
         @media (max-width: 1024px) {
             .nav-inner { width: 100%; padding: 0 20px; }
             .hero h1 { font-size: 60px; }
@@ -269,47 +275,37 @@
         }
 
         @media (max-width: 768px) {
-            /* 移动端性能优化：减少模糊 */
-            .weather-card, .music-card, .game-card, .game-modal { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,0.95); }
-            
+            .weather-card, .music-card, .game-card, .game-modal, .subpage-overlay { backdrop-filter: none; -webkit-backdrop-filter: none; background: rgba(255,255,255,0.95); }
             .nav-inner { padding: 0 15px; font-size: 14px; }
-            
             .hero { padding: 80px 20px 40px; justify-content: flex-start; align-items: center; height: auto; min-height: 100vh; }
             .hero h1 { font-size: 42px; text-align: center; margin-top: 20px; }
             .search-wrapper { max-width: 90%; }
-            
             .widget-sidebar { position: relative; top: auto; right: auto; transform: none; margin-top: 40px; flex-direction: row; flex-wrap: wrap; justify-content: center; width: 100%; }
-            
             .ribbon-container { left: 90%; opacity: 0.3; }
-
             .carousel-stage { height: 400px; }
             .web-card-wrapper { width: 220px; height: 320px; margin-top: -160px; margin-left: -110px; }
             .web-card-inner { padding: 20px; }
             .card-icon { font-size: 30px; }
-            
             .blog-stage { height: 700px; }
             .blog-title { font-size: 36px; top: 80px; }
-            
             .halo-container { transform: translate(-50%, -50%) scale(0.8); }
             .halo-core { width: 120px; height: 120px; opacity: 1; background: radial-gradient(circle at 30% 30%, #fff, #4af, #22f); }
-
             .blog-stage.active .halo-container { left: 50%; top: 15%; transform: translate(-50%, -50%) scale(0.5); }
-            
             .fan-interaction-zone { width: 300px; height: 300px; top: 40%; left: 50%; transform: translateX(-50%); }
             .stack-card { left: -140px; width: 280px; height: 130px; }
             .stack-title { font-size: 16px; }
             .add-msg-btn { right: 20px; bottom: 20px; top: auto; transform: none; }
             .add-msg-btn:hover { transform: scale(1.1); }
-
             .game-grid { grid-template-columns: 1fr; padding: 0 20px; }
             .game-card { height: 280px; }
-            
             .game-modal { padding: 20px; width: 95%; }
             .tetris-board, .snake-board { transform: scale(0.9); margin-bottom: 10px; }
-            
             .mobile-controls { display: flex; }
-            
             .scroll-hint { font-size: 12px; bottom: 80px; }
+            .subpage-grid { grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
+            .flat-web-card { padding: 15px; }
+            .flat-icon { font-size: 24px; }
+            .flat-name { font-size: 15px; }
         }
     </style>
 </head>
@@ -327,7 +323,7 @@
                     <stop offset="100%" stop-color="#0000ff"><animate attributeName="stop-color" values="#0000ff;#ff0000;#00ff00;#0000ff" dur="20s" repeatCount="indefinite" /></stop>
                 </linearGradient>
             </defs>
-            <path class="ribbon-path" d="M 50 0 C 80 200, 20 400, 50 600 C 80 800, 20 1000, 50 1200" stroke="url(#rainbowS)" id="ribbonPath" style="opacity: 0; visibility: hidden;" />
+            <path class="ribbon-path" d="M 50 0 C 80 200, 20 400, 50 600 C 80 800, 20 1000, 50 1200" stroke="url(#rainbowS)" id="ribbonPath" />
         </svg>
     </div>
 
@@ -352,7 +348,6 @@
                 <div style="font-size:12px; color:#666; margin-top:10px;">H:26° L:18° · Air Quality: Good</div>
             </div>
             
-            <!-- 音乐播放器 -->
             <div class="music-card" id="musicCard">
                 <div class="visualizer">
                     <div class="v-bar"></div><div class="v-bar"></div><div class="v-bar"></div>
@@ -380,8 +375,18 @@
     <section class="deck-section">
         <h2 style="text-align: center; font-size: 32px; margin-bottom: 20px; font-weight: 700;">常用の网站</h2>
         <div class="carousel-stage" id="carouselStage"><div class="carousel-track" id="track"></div></div>
-        <div class="view-all-container"><a href="#" class="view-all-link">查看所有网站 ›</a></div>
+        <div class="view-all-container">
+            <a onclick="toggleSubpage(true)" class="view-all-link">查看所有网站 ›</a>
+        </div>
     </section>
+
+    <div class="subpage-overlay" id="subpageOverlay">
+        <div class="subpage-header">
+            <div class="subpage-title">所有网站</div>
+            <div class="subpage-close" onclick="toggleSubpage(false)">完成</div>
+        </div>
+        <div class="subpage-grid" id="subpageGrid"></div>
+    </div>
 
     <!-- 留言墙 -->
     <section class="blog-stage" id="blogStage">
@@ -410,7 +415,7 @@
             <div class="modal-title">写下留言 ᰔ</div>
             <textarea class="msg-input" id="newMsgContent" placeholder="无需登录，直接留言！(100字以内)" maxlength="100"></textarea>
             <button class="msg-btn" onclick="submitMsg()">发布</button>
-            <div style="font-size: 12px; color: #999; margin-top: 10px;">Powered by LeanCloud Serverless</div>
+            <div style="font-size: 12px; color: #999; margin-top: 10px;">Powered by LeanCloud CN & LocalStorage</div>
         </div>
         
         <div class="game-modal" id="modalMinesweeper" style="display:none;"><div class="close-btn" onclick="closeGame()">✕</div><div class="modal-title">Minesweeper</div><div class="minesweeper-board" id="msBoard"></div><div id="msStatus">Find 10 Mines</div></div>
@@ -454,18 +459,67 @@
         document.addEventListener("DOMContentLoaded",()=>{
             const p=sessionStorage.getItem("sidebarScroll");if(p)setTimeout(()=>window.scrollTo(0,parseInt(p)),10);
             
-            // 启动核心逻辑
             initMsgStack(); 
             initWeather();
             initMusic();
             initFloatingText();
-            initRibbon();
-            
-            // 尝试连接云端
-            attemptLeanCloudLoad();
+            initRibbon(); // 修复彩虹线
+            initSubpageGrid(); // 初始化子页面
+            attemptLeanCloudLoad(); // 尝试云端连接
         });
 
-        // 本地兜底数据
+        // 网站数据
+        const ws=[{name:"GitHub",icon:"🐙",desc:"Code",url:"https://github.com"},{name:"Dribbble",icon:"🏀",desc:"Design",url:"https://dribbble.com"},{name:"ChatGPT",icon:"🤖",desc:"AI",url:"https://chatgpt.com"},{name:"Bilibili",icon:"📺",desc:"Video",url:"https://bilibili.com"},{name:"YouTube",icon:"▶",desc:"Global",url:"https://youtube.com"},{name:"V2EX",icon:"☁️",desc:"Talk",url:"https://v2ex.com"},{name:"Unsplash",icon:"📷",desc:"Photo",url:"https://unsplash.com"},{name:"Notion",icon:"📝",desc:"Note",url:"https://notion.so"},{name:"Figma",icon:"🎨",desc:"UI",url:"https://figma.com"},{name:"Apple",icon:"🍎",desc:"Think",url:"https://apple.com"},{name:"Google",icon:"🔍",desc:"Search",url:"https://google.com"},{name:"X",icon:"🐦",desc:"News",url:"https://x.com"}];
+
+        /* --- 2. 新增功能：子页面逻辑 --- */
+        function initSubpageGrid() {
+            const grid = document.getElementById('subpageGrid');
+            ws.forEach(s => {
+                const card = document.createElement('div');
+                card.className = 'flat-web-card';
+                card.onclick = () => window.open(s.url, '_blank');
+                card.innerHTML = `
+                    <div class="flat-icon">${s.icon}</div>
+                    <div class="flat-name">${s.name}</div>
+                    <div class="flat-desc">${s.desc}</div>
+                    <div class="flat-link">访问 ></div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+        function toggleSubpage(show) {
+            const overlay = document.getElementById('subpageOverlay');
+            if (show) {
+                overlay.classList.add('active');
+                document.body.style.overflow = 'hidden'; // 防止背景滚动
+            } else {
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        /* --- 1. 修复功能：彩虹线防闪烁 --- */
+        function initRibbon() {
+            const path = document.getElementById('ribbonPath');
+            if(!path) return;
+            const pathLen = path.getTotalLength();
+            path.style.strokeDasharray = pathLen;
+            path.style.strokeDashoffset = pathLen;
+            path.getBoundingClientRect(); // 强制重绘
+            
+            // 延迟一帧后显示
+            requestAnimationFrame(() => {
+                path.style.opacity = '1';
+                const updateScroll = () => {
+                    const p = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+                    path.style.strokeDashoffset = pathLen * (1 - p);
+                };
+                window.addEventListener('scroll', updateScroll);
+                updateScroll(); 
+            });
+        }
+
+        /* --- 3. 核心功能：中国大陆可用留言板 (LeanCloud CN) --- */
         const defaultMsgs = [ 
             { date: "2025.06.07", content: "高考顺利！" }, 
             { date: "2024.12.25", content: "Merry Christmas! 🎄" }, 
@@ -473,11 +527,9 @@
             { date: "2023.11.05", content: "我想要做一个自己的私人网站。——Ning" }
         ];
 
-        // 核心数据源：先从 LocalStorage 读取用户自己发过的，再合并默认的
         let globalMsgs = loadLocalMsgs().concat(defaultMsgs);
         let renderStackCards = function() {}; 
 
-        // --- 修复功能：读取本地缓存 ---
         function loadLocalMsgs() {
             try {
                 const saved = localStorage.getItem('my_messages');
@@ -485,28 +537,23 @@
             } catch(e) { return []; }
         }
 
-        // --- 修复功能：保存到本地缓存 ---
         function saveLocalMsg(content) {
             const d = new Date();
             const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
             const newMsg = { date: dateStr, content: content };
-            
-            // 更新内存数据
             globalMsgs.unshift(newMsg);
-            
-            // 更新本地缓存 (只存前20条自己的，防止太长)
             const myMsgs = loadLocalMsgs();
             myMsgs.unshift(newMsg);
-            localStorage.setItem('my_messages', JSON.stringify(myMsgs.slice(0, 20)));
-            
+            localStorage.setItem('my_messages', JSON.stringify(myMsgs.slice(0, 20))); 
             return newMsg;
         }
         
         function attemptLeanCloudLoad() {
-            // 你的国际版配置
-            const LC_APP_ID = "60GMpIJGbEtH3s2GIZZXhi6R-MdYXbMMI";
-            const LC_APP_KEY = "7Rl7mxCFErwYvNijpezruXVM";
-            const LC_SERVER_URL = "https://60gmpijg.api.lncldglobal.com";
+            // --- 已切换为中国大陆节点配置 ---
+            const LC_APP_ID = "idADHrrjamKOLNEH3i321mT1-gzGzoHsz";
+            const LC_APP_KEY = "ttVo9NUNkSjsZ0XMDoSV7z9R";
+            // 必须指定 ServerURL 才能连接大陆节点
+            const LC_SERVER_URL = "https://idadhrrj.lc-cn-n1-shared.com";
             
             let attempts = 0;
             const checkAV = setInterval(() => {
@@ -515,56 +562,80 @@
                     clearInterval(checkAV);
                     try {
                         AV.init({ appId: LC_APP_ID, appKey: LC_APP_KEY, serverURL: LC_SERVER_URL });
-                        console.log("LeanCloud Connected.");
+                        console.log("LeanCloud CN SDK Init Success.");
                         fetchCloudMessages(); 
                     } catch (e) { console.error("LC Init Error:", e); }
                 }
-                if (attempts > 50) clearInterval(checkAV); // 5秒超时
+                if (attempts > 50) clearInterval(checkAV);
             }, 100);
         }
 
-        // --- 修复功能：拉取云端数据 ---
         function fetchCloudMessages() {
             if(!window.AV) return;
             const query = new AV.Query('Message');
             query.descending('createdAt'); 
             query.limit(50); 
-            query.find().then((messages) => {
-                // 如果云端拉取成功
+            // 5秒超时限制，防止弱网卡顿
+            Promise.race([
+                query.find(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+            ]).then((messages) => {
                 if(messages && messages.length > 0) {
                     const cloudMsgs = messages.map(m => {
-                        const d = m.createdAt || new Date(); // 防止日期为空
+                        const d = m.createdAt || new Date();
                         const dateStr = d.getFullYear() + "." + (d.getMonth()+1).toString().padStart(2,'0') + "." + d.getDate().toString().padStart(2,'0');
                         return { date: dateStr, content: m.get('content') };
                     });
-                    // 合并策略：显示云端最新的，如果云端没数据，至少显示本地的
                     globalMsgs = cloudMsgs;
                     renderStackCards(); 
                 }
             }).catch((e) => {
-                console.warn("Cloud fetch failed (likely network blocked). Using local data.", e);
-                // 网络失败时，不做任何操作，保持显示 LocalStorage 的数据
+                console.warn("Cloud fetch slow/failed. Using local data only.", e);
             });
         }
 
-        window.addEventListener("beforeunload",()=>sessionStorage.setItem("sidebarScroll",window.scrollY));
-        
-        function initRibbon() {
-            const path = document.getElementById('ribbonPath');
-            if(!path) return;
-            const pathLen = path.getTotalLength();
-            path.style.strokeDasharray = pathLen;
-            path.style.strokeDashoffset = pathLen;
-            path.getBoundingClientRect(); 
-            path.style.visibility = 'visible';
-            path.style.opacity = '1';
-            const updateScroll = () => {
-                const p = window.scrollY / (document.body.scrollHeight - window.innerHeight);
-                path.style.strokeDashoffset = pathLen * (1 - p);
-            };
-            window.addEventListener('scroll', updateScroll);
-            updateScroll(); 
+        function submitMsg() {
+            const inputEl = document.getElementById('newMsgContent');
+            const txt = inputEl.value;
+            if(!txt.trim()) { alert("Please write something!"); return; }
+            
+            const btn = document.querySelector('.msg-btn');
+            btn.innerText = "发布中...";
+            btn.disabled = true;
+
+            // 策略：无论云端是否成功，先保存到本地，让用户觉得“成功了”
+            saveLocalMsg(txt);
+            renderStackCards(); 
+
+            // 尝试上传云端 (大陆节点)
+            try {
+                if (window.AV) {
+                    const MessageClass = AV.Object.extend('Message');
+                    const message = new MessageClass();
+                    message.set('content', txt);
+                    message.save().then(() => {
+                        console.log("Cloud saved to CN node.");
+                    }, (error) => {
+                        console.warn("Cloud save failed, but local saved.", error);
+                    });
+                }
+            } catch(e) {}
+
+            // 直接反馈成功
+            setTimeout(() => {
+                alert("发布成功！");
+                resetModal(btn, inputEl);
+            }, 500);
         }
+
+        function resetModal(btn, inputEl) {
+            btn.innerText = "发布";
+            btn.disabled = false;
+            closeGame();
+            inputEl.value = ''; 
+        }
+
+        // --- 其他原有逻辑 ---
         
         function initFloatingText() {
             const layer = document.getElementById('floating-text-canvas');
@@ -579,10 +650,7 @@
                 layer.appendChild(el);
             }
         }
-
         function initWeather(){const rc=document.getElementById('rainContainer');for(let i=0;i<20;i++){const d=document.createElement('div');d.className='drop';d.style.left=Math.random()*100+'%';d.style.animationDuration=(Math.random()*0.5+0.5)+'s';d.style.animationDelay=Math.random()+'s';rc.appendChild(d);}}
-        
-        // Music Player
         function initMusic() {
             const audio = document.getElementById('realAudio');
             const playBtn = document.getElementById('playBtn');
@@ -594,15 +662,12 @@
             const bar = document.getElementById('progBar');
             const container = document.getElementById('progContainer');
             const card = document.getElementById('musicCard');
-
             const playlist = [
                 { title: "Lofi Study", artist: "FASSounds", src: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3", cover: "https://images.unsplash.com/photo-1516280440614-6697288d5d38?w=200&q=80" },
                 { title: "Relaxing Beat", artist: "Coma-Media", src: "https://cdn.pixabay.com/download/audio/2022/03/24/audio_07364d28ea.mp3?filename=relaxing-114996.mp3", cover: "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=200&q=80" },
                 { title: "Summer Night", artist: "Chillmore", src: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_94430f854a.mp3?filename=summer-night-124556.mp3", cover: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=200&q=80" }
             ];
-            
             let currentIdx = 0;
-
             function loadTrack(index) {
                 const track = playlist[index];
                 titleEl.innerText = track.title;
@@ -611,16 +676,9 @@
                 audio.src = track.src;
             }
             function playTrack() {
-                audio.play().then(() => {
-                    playBtn.innerText = "⏸";
-                    card.classList.add('playing');
-                }).catch(e => console.error(e));
+                audio.play().then(() => { playBtn.innerText = "⏸"; card.classList.add('playing'); }).catch(e => console.error(e));
             }
-            function pauseTrack() {
-                audio.pause();
-                playBtn.innerText = "▶";
-                card.classList.remove('playing');
-            }
+            function pauseTrack() { audio.pause(); playBtn.innerText = "▶"; card.classList.remove('playing'); }
             loadTrack(currentIdx);
             playBtn.addEventListener('click', () => { if (audio.paused) playTrack(); else pauseTrack(); });
             nextBtn.addEventListener('click', () => { currentIdx = (currentIdx + 1) % playlist.length; loadTrack(currentIdx); playTrack(); });
@@ -632,23 +690,19 @@
 
         const bD=[{t:"Mr.宁 👨‍💻",s:110,x:70,y:30},{t:"摄影+后期📸",s:130,x:20,y:60},{t:"武汉市",s:90,x:50,y:80},{t:"ENFJ",s:80,x:30,y:20},{t:"大学生",s:95,x:60,y:15},{t:"猫猫！🐱",s:85,x:10,y:40}],cvs=document.getElementById('bubble-canvas'),bs=[];bD.forEach(d=>{const e=document.createElement('div');e.className='bubble';e.innerText=d.t;e.style.width=d.s+'px';e.style.height=d.s+'px';cvs.appendChild(e);bs.push({e:e,bx:d.x,by:d.y,cx:0,cy:0});});let ms={x:-9e3,y:-9e3};window.addEventListener('mousemove',e=>{const r=cvs.getBoundingClientRect();ms.x=e.clientX-r.left;ms.y=e.clientY-r.top;});function ab(){const w=cvs.offsetWidth,h=cvs.offsetHeight;bs.forEach(b=>{const tx=(b.bx/100)*w,ty=(b.by/100)*h,dx=ms.x-tx,dy=ms.y-ty,d=Math.sqrt(dx*dx+dy*dy);if(d<200){const a=Math.atan2(dy,dx),f=(200-d)/200;b.cx+=((-Math.cos(a)*f*150)-b.cx)*.1;b.cy+=((-Math.sin(a)*f*150)-b.cy)*.1;}else{b.cx+=(0-b.cx)*.05;b.cy+=(0-b.cy)*.05;}const t=Date.now()/2e3;b.e.style.left=(tx-b.e.offsetWidth/2)+'px';b.e.style.top=(ty-b.e.offsetHeight/2)+'px';b.e.style.transform=`translate(${b.cx+Math.sin(t+b.bx)*10}px,${b.cy+Math.cos(t+b.by)*10}px)`;});requestAnimationFrame(ab);}ab();
         
-        const ws=[{name:"GitHub",icon:"🐙",desc:"Code",url:"https://github.com"},{name:"Dribbble",icon:"🏀",desc:"Design",url:"https://dribbble.com"},{name:"ChatGPT",icon:"🤖",desc:"AI",url:"https://chatgpt.com"},{name:"Bilibili",icon:"📺",desc:"Video",url:"https://bilibili.com"},{name:"YouTube",icon:"▶",desc:"Global",url:"https://youtube.com"},{name:"V2EX",icon:"☁️",desc:"Talk",url:"https://v2ex.com"},{name:"Unsplash",icon:"📷",desc:"Photo",url:"https://unsplash.com"},{name:"Notion",icon:"📝",desc:"Note",url:"https://notion.so"},{name:"Figma",icon:"🎨",desc:"UI",url:"https://figma.com"},{name:"Apple",icon:"🍎",desc:"Think",url:"https://apple.com"},{name:"Google",icon:"🔍",desc:"Search",url:"https://google.com"},{name:"X",icon:"🐦",desc:"News",url:"https://x.com"}];
         const trk=document.getElementById('track');ws.forEach(s=>{const w=document.createElement('div');w.className='web-card-wrapper';w.innerHTML=`<div class="web-card-inner"><div class="card-icon">${s.icon}</div><div><div class="card-title">${s.name}</div><div class="card-desc">${s.desc}</div></div><a href="${s.url}" target="_blank" class="card-btn" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">Visit</a></div>`;trk.appendChild(w);});
         
         const stg=document.getElementById('carouselStage'),cds=document.querySelectorAll('.web-card-wrapper'),cnt=cds.length;let prg=0,tPrg=0,isD=false,sx=0,st=0,mxr=0;
-        
         stg.addEventListener('mousemove',e=>{mxr=e.clientX-stg.getBoundingClientRect().left;});stg.addEventListener('mouseleave',()=>{mxr=-1;});
         stg.addEventListener('mousedown',e=>{isD=true;sx=e.clientX;st=tPrg;stg.style.cursor='grabbing';});
         window.addEventListener('mousemove',e=>{if(!isD)return;const d=e.clientX-sx;tPrg=st-(d/200);});
         window.addEventListener('mouseup',()=>{isD=false;stg.style.cursor='grab';});
-        
         stg.addEventListener('touchstart',e=>{isD=true;sx=e.touches[0].clientX;st=tPrg;}, {passive: false});
         stg.addEventListener('touchmove',e=>{if(!isD)return; e.preventDefault(); const d=e.touches[0].clientX-sx;tPrg=st-(d/200);}, {passive: false});
         stg.addEventListener('touchend',()=>{isD=false;});
-
         function uc(){if(!isD&&mxr!==-1){const w=stg.getBoundingClientRect().width;if(mxr<w*.15&&mxr>0)tPrg-=.03;else if(mxr>w*.85&&mxr<w)tPrg+=.03;}prg+=(tPrg-prg)*.1;cds.forEach((c,i)=>{let o=(i-prg)%cnt;if(o<0)o+=cnt;if(o>cnt/2)o-=cnt;const ao=Math.abs(o);if(ao>5){c.style.display='none';}else{c.style.display='block';const tx=o*180,tz=-(ao*ao)*40,ry=-o*25,zi=100-Math.round(ao*10),op=1-(ao*.15);c.style.zIndex=zi;c.style.opacity=Math.max(op,0);c.style.transform=`translateX(${tx}px) translateZ(${tz}px) rotateY(${ry}deg)`;}});requestAnimationFrame(uc);}uc();
         
-        const ems=["✨","🚀","🎉","🔥","💡","🎨","💻","🌈","🍎","⚡️","📸"];document.addEventListener('click',e=>{if(e.target.closest('a')||e.target.closest('input')||e.target.closest('.nav-text')||e.target.closest('.halo-container')||e.target.closest('.stack-card')||e.target.closest('.game-card')||e.target.closest('.game-modal')||e.target.closest('.add-msg-btn')||e.target.closest('.control-btn')||e.target.closest('.d-btn'))return;ce(e.clientX,e.clientY);});function ee(x,y){for(let i=0;i<15;i++){setTimeout(()=>{const ox=(Math.random()-.5)*50,oy=(Math.random()-.5)*30;ce(x+ox,y+oy,true);},i*30);}}document.getElementById('navText1').addEventListener('click',e=>ee(e.clientX,e.clientY));document.getElementById('navText2').addEventListener('click',e=>ee(e.clientX,e.clientY));function ce(x,y,iex=false){const e=document.createElement('div');e.className='emoji-particle';e.innerText=ems[Math.floor(Math.random()*ems.length)];e.style.left=x+'px';e.style.top=y+'px';const s=Math.random()*20+20;e.style.fontSize=s+'px';if(iex){const a=Math.random()*Math.PI*2,v=Math.random()*100+50,tx=Math.cos(a)*v,ty=Math.sin(a)*v-100;e.animate([{transform:'translate(0,0) scale(0.5)',opacity:1},{transform:`translate(${tx}px,${ty}px) scale(1.2)`,opacity:0}],{duration:1e3,easing:'cubic-bezier(0.25,0.1,0.25,1)'}).onfinish=()=>e.remove();}else{e.style.animation='emoji-float-up 1s ease-out forwards';setTimeout(()=>e.remove(),1e3);}document.body.appendChild(e);}const sinp=document.getElementById('smartInput'),ssh=document.getElementById('searchShell');sinp.addEventListener('focus',()=>ssh.classList.add('active'));sinp.addEventListener('blur',()=>ssh.classList.remove('active'));sinp.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=sinp.value.trim();if(v)window.open(/^http/.test(v)?v:'https://www.baidu.com/s?wd='+encodeURIComponent(v));}});
+        const ems=["✨","🚀","🎉","🔥","💡","🎨","💻","🌈","🍎","⚡️","📸"];document.addEventListener('click',e=>{if(e.target.closest('a')||e.target.closest('input')||e.target.closest('.nav-text')||e.target.closest('.halo-container')||e.target.closest('.stack-card')||e.target.closest('.game-card')||e.target.closest('.game-modal')||e.target.closest('.add-msg-btn')||e.target.closest('.control-btn')||e.target.closest('.d-btn')||e.target.closest('.subpage-close')||e.target.closest('.flat-web-card'))return;ce(e.clientX,e.clientY);});function ee(x,y){for(let i=0;i<15;i++){setTimeout(()=>{const ox=(Math.random()-.5)*50,oy=(Math.random()-.5)*30;ce(x+ox,y+oy,true);},i*30);}}document.getElementById('navText1').addEventListener('click',e=>ee(e.clientX,e.clientY));document.getElementById('navText2').addEventListener('click',e=>ee(e.clientX,e.clientY));function ce(x,y,iex=false){const e=document.createElement('div');e.className='emoji-particle';e.innerText=ems[Math.floor(Math.random()*ems.length)];e.style.left=x+'px';e.style.top=y+'px';const s=Math.random()*20+20;e.style.fontSize=s+'px';if(iex){const a=Math.random()*Math.PI*2,v=Math.random()*100+50,tx=Math.cos(a)*v,ty=Math.sin(a)*v-100;e.animate([{transform:'translate(0,0) scale(0.5)',opacity:1},{transform:`translate(${tx}px,${ty}px) scale(1.2)`,opacity:0}],{duration:1e3,easing:'cubic-bezier(0.25,0.1,0.25,1)'}).onfinish=()=>e.remove();}else{e.style.animation='emoji-float-up 1s ease-out forwards';setTimeout(()=>e.remove(),1e3);}document.body.appendChild(e);}const sinp=document.getElementById('smartInput'),ssh=document.getElementById('searchShell');sinp.addEventListener('focus',()=>ssh.classList.add('active'));sinp.addEventListener('blur',()=>ssh.classList.remove('active'));sinp.addEventListener('keypress',e=>{if(e.key==='Enter'){let v=sinp.value.trim();if(v)window.open(/^http/.test(v)?v:'https://www.baidu.com/s?wd='+encodeURIComponent(v));}});
 
         function initMsgStack() {
             const orbBtn = document.getElementById('orbBtn');
@@ -660,7 +714,6 @@
 
             renderStackCards = function() {
                 stackContainer.innerHTML = '';
-                // 渲染时同时包含 LocalStorage 和 兜底数据 (如果云端没拉取到)
                 globalMsgs.forEach((m) => { 
                     const card = document.createElement('div'); 
                     card.className = 'stack-card'; 
@@ -715,28 +768,11 @@
             }
             loop();
 
-            orbBtn.addEventListener('click', () => { 
-                isStackOpen = !isStackOpen; 
-                blogStage.classList.toggle('active', isStackOpen); 
-                if(!isStackOpen) state.target = 0;
-            });
-            
-            fanZone.addEventListener('wheel', (e) => {
-                if (!isStackOpen) return;
-                e.preventDefault();
-                state.target += e.deltaY * 0.0025; 
-            });
-
+            orbBtn.addEventListener('click', () => { isStackOpen = !isStackOpen; blogStage.classList.toggle('active', isStackOpen); if(!isStackOpen) state.target = 0; });
+            fanZone.addEventListener('wheel', (e) => { if (!isStackOpen) return; e.preventDefault(); state.target += e.deltaY * 0.0025; });
             let startY = 0, startScroll = 0;
-            fanZone.addEventListener('touchstart', (e) => {
-                if (!isStackOpen) return;
-                startY = e.touches[0].clientY; startScroll = state.target;
-            }, {passive: false});
-            fanZone.addEventListener('touchmove', (e) => {
-                if (!isStackOpen) return;
-                e.preventDefault(); 
-                state.target = startScroll - (e.touches[0].clientY - startY) * 0.01; 
-            }, {passive: false});
+            fanZone.addEventListener('touchstart', (e) => { if (!isStackOpen) return; startY = e.touches[0].clientY; startScroll = state.target; }, {passive: false});
+            fanZone.addEventListener('touchmove', (e) => { if (!isStackOpen) return; e.preventDefault(); state.target = startScroll - (e.touches[0].clientY - startY) * 0.01; }, {passive: false});
         }
 
         function openMsgModal() {
@@ -746,56 +782,6 @@
             document.getElementById('modalTetris').style.display='none';
             document.getElementById('modalSnake').style.display='none';
             document.getElementById('newMsgContent').focus();
-        }
-
-        function submitMsg() {
-            const inputEl = document.getElementById('newMsgContent');
-            const txt = inputEl.value;
-            if(!txt.trim()) { alert("Please write something!"); return; }
-            
-            const btn = document.querySelector('.msg-btn');
-            btn.innerText = "发布中...";
-            btn.disabled = true;
-
-            // --- 修复功能：无论云端是否成功，先存本地 ---
-            try {
-                // 存入 LocalStorage (这样刷新就不怕没了)
-                saveLocalMsg(txt);
-                
-                // 重新渲染列表 (立即看到效果)
-                renderStackCards();
-            } catch(e) { console.error("Local save error", e); }
-
-            // 尝试存入云端
-            try {
-                if (window.AV) {
-                    const MessageClass = AV.Object.extend('Message');
-                    const message = new MessageClass();
-                    message.set('content', txt);
-                    message.save().then((savedMsg) => {
-                        alert("发布成功！");
-                        resetModal(btn, inputEl);
-                    }, (error) => {
-                        // 如果因为没挂梯子失败了，不报错，而是告诉用户“已存本地”
-                        console.warn("Cloud save blocked. Persisting locally only.");
-                        alert("网络连接受限，留言已保存到本地！(仅自己可见)");
-                        resetModal(btn, inputEl);
-                    });
-                } else {
-                    alert("发布成功！(本地模式)");
-                    resetModal(btn, inputEl);
-                }
-            } catch(e) { 
-                alert("发布成功！(离线模式)");
-                resetModal(btn, inputEl);
-            }
-        }
-
-        function resetModal(btn, inputEl) {
-            btn.innerText = "发布";
-            btn.disabled = false;
-            closeGame();
-            inputEl.value = ''; 
         }
 
         let gameInterval = null;
@@ -809,7 +795,6 @@
         function checkMSWin(){if(safeCells===0){document.getElementById('msStatus').innerText="Victory! 🎉";msOver=true;ee(window.innerWidth/2,window.innerHeight/2);}}
         function revealMSAll(){for(let i=0;i<100;i++)if(mines[i]){const c=document.getElementById('msBoard').children[i];c.classList.add('mine');c.innerText='💣';}}
         
-        // Tetris Logic
         const SHAPES=[[[1,1,1,1]],[[1,1,1],[0,1,0]],[[1,1,1],[1,0,0]],[[1,1,1],[0,0,1]],[[1,1],[1,1]],[[1,1,0],[0,1,1]],[[0,1,1],[1,1,0]]],COLORS=['cyan','purple','orange','blue','yellow','red','green'];let tBoard=[],curPiece=null,curX=0,curY=0,tScore=0;
         function initTetris(){document.getElementById('gameOverlay').classList.add('active');document.getElementById('modalMinesweeper').style.display='none';document.getElementById('modalTetris').style.display='block';document.getElementById('modalSnake').style.display='none';document.getElementById('modalMsg').style.display='none';tBoard=Array(20).fill().map(()=>Array(10).fill(0));tScore=0;document.getElementById('tetrisStatus').innerText="Score: 0";spawnPiece();drawTetris();if(gameInterval)clearInterval(gameInterval);gameInterval=setInterval(()=>moveTetris(0,1),500);document.addEventListener('keydown',controlTetris);}
         function drawTetris(){const el=document.getElementById('tetrisBoard');el.innerHTML='';let d=tBoard.map(r=>[...r]);if(curPiece){for(let y=0;y<curPiece.length;y++)for(let x=0;x<curPiece[y].length;x++)if(curPiece[y][x]&&curY+y>=0&&curY+y<20&&curX+x>=0&&curX+x<10)d[curY+y][curX+x]=curPiece.color+1;}for(let y=0;y<20;y++)for(let x=0;x<10;x++){const div=document.createElement('div');div.className='t-cell';if(d[y][x]){div.style.background=COLORS[d[y][x]-1];div.style.border='1px solid rgba(0,0,0,0.2)';}el.appendChild(div);}}
@@ -819,22 +804,14 @@
         function rotateTetris(){const r=curPiece[0].map((_,i)=>curPiece.map(row=>row[i]).reverse());r.color=curPiece.color;if(!collision(0,0,r)){curPiece=r;drawTetris();}}
         function controlTetris(e){if(document.getElementById('modalTetris').style.display!=='none'){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();if(e.key==='ArrowLeft')moveTetris(-1,0);else if(e.key==='ArrowRight')moveTetris(1,0);else if(e.key==='ArrowDown')moveTetris(0,1);else if(e.key==='ArrowUp')rotateTetris();else if(e.key===' '){while(moveTetris(0,1)){}}}}
         
-        // Snake Logic
         let snake=[],food={},dir={},nextDir={};
         function initSnake(){document.getElementById('gameOverlay').classList.add('active');document.getElementById('modalMinesweeper').style.display='none';document.getElementById('modalTetris').style.display='none';document.getElementById('modalSnake').style.display='block';document.getElementById('modalMsg').style.display='none';snake=[{x:10,y:10}];dir={x:0,y:0};nextDir={x:0,y:0};tScore=0;document.getElementById('snakeStatus').innerText="Score: 0";placeFood();drawSnake();if(gameInterval)clearInterval(gameInterval);gameInterval=setInterval(updateSnake,150);document.addEventListener('keydown',controlSnake);}
         function placeFood(){food={x:Math.floor(Math.random()*20),y:Math.floor(Math.random()*20)};for(let s of snake)if(s.x===food.x&&s.y===food.y)placeFood();}
         function updateSnake(){dir=nextDir;if(dir.x===0&&dir.y===0)return;const h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};if(h.x<0||h.x>=20||h.y<0||h.y>=20||snake.some(s=>s.x===h.x&&s.y===h.y)){clearInterval(gameInterval);document.getElementById('snakeStatus').innerText="Game Over! Score: "+tScore;return;}snake.unshift(h);if(h.x===food.x&&h.y===food.y){tScore+=10;document.getElementById('snakeStatus').innerText="Score: "+tScore;placeFood();}else{snake.pop();}drawSnake();}
         function drawSnake(){const el=document.getElementById('snakeBoard');el.innerHTML='';for(let y=0;y<20;y++)for(let x=0;x<20;x++){const d=document.createElement('div');d.className='s-cell';if(x===food.x&&y===food.y)d.classList.add('s-food');if(snake.some(s=>s.x===x&&s.y===y))d.classList.add('s-snake');el.appendChild(d);}}
         function controlSnake(e){if(document.getElementById('modalSnake').style.display!=='none'){if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key))e.preventDefault();changeSnakeDirFromKey(e.key);}}
-        function changeSnakeDirFromKey(key) {
-            if(key==='ArrowUp'&&dir.y===0)nextDir={x:0,y:-1};else if(key==='ArrowDown'&&dir.y===0)nextDir={x:0,y:1};else if(key==='ArrowLeft'&&dir.x===0)nextDir={x:-1,y:0};else if(key==='ArrowRight'&&dir.x===0)nextDir={x:1,y:0};
-        }
-        function changeSnakeDir(dx, dy) {
-            if(dx === 0 && dy === -1 && dir.y === 0) nextDir={x:0,y:-1};
-            else if(dx === 0 && dy === 1 && dir.y === 0) nextDir={x:0,y:1};
-            else if(dx === -1 && dy === 0 && dir.x === 0) nextDir={x:-1,y:0};
-            else if(dx === 1 && dy === 0 && dir.x === 0) nextDir={x:1,y:0};
-        }
+        function changeSnakeDirFromKey(key) { if(key==='ArrowUp'&&dir.y===0)nextDir={x:0,y:-1};else if(key==='ArrowDown'&&dir.y===0)nextDir={x:0,y:1};else if(key==='ArrowLeft'&&dir.x===0)nextDir={x:-1,y:0};else if(key==='ArrowRight'&&dir.x===0)nextDir={x:1,y:0}; }
+        function changeSnakeDir(dx, dy) { if(dx === 0 && dy === -1 && dir.y === 0) nextDir={x:0,y:-1}; else if(dx === 0 && dy === 1 && dir.y === 0) nextDir={x:0,y:1}; else if(dx === -1 && dy === 0 && dir.x === 0) nextDir={x:-1,y:0}; else if(dx === 1 && dy === 0 && dir.x === 0) nextDir={x:1,y:0}; }
     </script>
 </body>
 </html>
